@@ -33,6 +33,35 @@ function loadSavedUiSettings() {
   if (saved.fontSz) { applyFontSize(saved.fontSz); if ($('fontSizeSelect')) $('fontSizeSelect').value = saved.fontSz; }
 }
 loadSavedUiSettings();
+function setDeviceMode(mode) {
+  localStorage.setItem('tg_device_mode', mode);
+  const isMob = mode === 'mobile';
+  document.body.classList.toggle('is-mobile', isMob);
+  if ($('btnModeMobile')) $('btnModeMobile').classList.toggle('active', isMob);
+  if ($('btnModeDesktop')) $('btnModeDesktop').classList.toggle('active', !isMob);
+}
+
+function initDeviceMode() {
+  const savedMode = localStorage.getItem('tg_device_mode');
+  if (savedMode) {
+    setDeviceMode(savedMode);
+  } else {
+    const autoMob = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    setDeviceMode(autoMob ? 'mobile' : 'desktop');
+  }
+}
+initDeviceMode();
+
+function closeMobileChat() {
+  document.body.classList.remove('mobile-chat-open');
+}
+
+function setMobileTab(tab) {
+  setFolder(tab);
+  document.querySelectorAll('.m-nav-item').forEach(el => el.classList.remove('active'));
+  if ($('m-nav-' + tab)) $('m-nav-' + tab).classList.add('active');
+  closeMobileChat();
+}
 
 function openSettings() {
   $('editNameInput').value = myName;
@@ -248,6 +277,8 @@ function selectChat(id, title) {
   $('videoBtn').style.display = showCalls ? 'block' : 'none';
   renderChatList();
   renderMessages();
+  document.body.classList.add('mobile-chat-open');
+
 }
 function formatSpoilers(str) { return str.replace(/\|\|(.+?)\|\|/g, '<span class="spoiler" onclick="this.classList.toggle(\'revealed\')">$1</span>'); }
 function setReply(name, text) { replyTo = { name, text }; $('replyPreviewText').textContent = `Ответ для ${name}: ${text}`; $('replyBar').style.display = 'flex'; $('msgInput').focus(); }
