@@ -1,31 +1,11 @@
 {
-  "name": "turbogram",
+  "name": "turbogram-server",
   "version": "1.0.0",
-  "description": "Защищённый мессенджер TurboGram",
-  "main": "desktop.js",
+  "main": "server.js",
   "scripts": {
-    "start": "electron .",
-    "server": "node server.js",
-    "build": "electron-builder --win"
-  },
-  "build": {
-    "appId": "com.turbogram.app",
-    "productName": "TurboGram",
-    "win": {
-      "target": "nsis",
-      "icon": "icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
-    }
+    "start": "node server.js"
   },
   "dependencies": {
     "ws": "^8.18.0"
-  },
-  "devDependencies": {
-    "electron": "^33.4.11",
-    "electron-builder": "^25.1.8"
   }
 }
