@@ -1,703 +1,123 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>TurboGram</title>
   <style>
-    :root {
-      --bg-main: #0e1621;
-      --bg-side: #17212b;
-      --bg-input: #242f3d;
-      --bg-msg-in: #182533;
-      --bg-msg-out: #2b5278;
-      --accent: #5288c1;
-      --msg-size: 14.5px;
-    }
-
-    body.theme-oled {
-      --bg-main: #000;
-      --bg-side: #0d0d0d;
-      --bg-input: #1a1a1a;
-      --bg-msg-in: #141414;
-      --bg-msg-out: #1f3a5c;
-    }
-
-    body.theme-blue {
-      --bg-main: #101d2c;
-      --bg-side: #1a2c42;
-      --bg-input: #263d59;
-      --bg-msg-in: #1d334d;
-      --bg-msg-out: #326295;
-    }
-
-    .messages.wall-bg1 {
-      background: url('/image.jpg') repeat;
-      background-size: 340px;
-    }
-
-    .messages.wall-bg2 {
-      background: url('/image (1).jpg') center/cover no-repeat;
-    }
-
-    .messages.wall-bg3 {
-      background: url('/image (2).jpg') repeat;
-      background-size: 340px;
-    }
-
-    .messages.wall-bg4 {
-      background: url('/image (3).jpg') center/cover no-repeat;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: "Segoe UI", sans-serif;
-    }
-
-    body {
-      height: 100vh;
-      background: var(--bg-main);
-      color: #fff;
-      display: flex;
-      overflow: hidden;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-    }
-
-    .modal-box {
-      background: var(--bg-side);
-      padding: 28px;
-      border-radius: 16px;
-      width: 390px;
-      text-align: center;
-      max-height: 92vh;
-      overflow-y: auto;
-    }
-
-    .tg-logo-img {
-      width: 76px;
-      height: 76px;
-      border-radius: 50%;
-      margin: 0 auto 14px;
-      display: block;
-      object-fit: cover;
-    }
-
-    .auth-input,
-    .select-input {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid #2b3847;
-      background: var(--bg-input);
-      color: #fff;
-      outline: none;
-      font-size: 14px;
-    }
-
-    .btn-primary {
-      width: 100%;
-      padding: 11px;
-      border-radius: 10px;
-      border: none;
-      background: var(--accent);
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .auth-back {
-      margin-top: 12px;
-      font-size: 13px;
-      color: #6ab3f3;
-      cursor: pointer;
-      display: none;
-    }
-
-    .auth-error {
-      color: #ff595a;
-      font-size: 13px;
-      margin-bottom: 10px;
-      min-height: 18px;
-    }
-
-    .folders-bar {
-      width: 72px;
-      background: var(--bg-main);
-      border-right: 1px solid var(--bg-side);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-top: 12px;
-      gap: 6px;
-    }
-
-    .folder-item {
-      width: 62px;
-      padding: 9px 4px;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-      color: #708499;
-      font-size: 11px;
-    }
-
-    .folder-item.active,
-    .folder-item:hover {
-      background: var(--bg-side);
-      color: #6ab3f3;
-    }
-
-    .bottom-tools {
-      margin-top: auto;
-      margin-bottom: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .my-avatar-circle {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      overflow: hidden;
-    }
-
-    .my-avatar-circle img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .sidebar {
-      width: 300px;
-      background: var(--bg-side);
-      border-right: 1px solid var(--bg-main);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .search-box {
-      padding: 12px;
-    }
-
-    .search-box input {
-      width: 100%;
-      padding: 9px 14px;
-      border-radius: 18px;
-      border: none;
-      background: var(--bg-input);
-      color: #fff;
-      outline: none;
-    }
-
-    .chat-list {
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    .chat-item {
-      padding: 10px 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .chat-item:hover {
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .chat-item.active {
-      background: var(--bg-msg-out);
-    }
-
-    .avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--accent);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      position: relative;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .online-dot {
-      width: 11px;
-      height: 11px;
-      background: #4dcd5e;
-      border-radius: 50%;
-      position: absolute;
-      bottom: 1px;
-      right: 1px;
-      border: 2px solid var(--bg-side);
-    }
-
-    .chat-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .chat-top {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 3px;
-    }
-
-    .chat-name {
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .chat-time {
-      font-size: 11px;
-      color: #6c7883;
-    }
-
-    .chat-preview {
-      font-size: 13px;
-      color: #8b9bb4;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .chat-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: var(--bg-main);
-      position: relative;
-    }
-
-    .chat-header {
-      padding: 12px 20px;
-      background: var(--bg-side);
-      border-bottom: 1px solid var(--bg-main);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .chat-header-title {
-      font-weight: 600;
-    }
-
-    .chat-header-sub {
-      font-size: 12px;
-      color: #4dcd5e;
-    }
-
-    .call-btn {
-      background: var(--bg-msg-out);
-      color: #fff;
-      border: none;
-      padding: 7px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      display: none;
-      font-size: 13px;
-    }
-
-    .pin-bar {
-      background: var(--bg-side);
-      padding: 7px 20px;
-      border-bottom: 1px solid var(--bg-main);
-      display: none;
-      justify-content: space-between;
-      font-size: 13px;
-      color: #6ab3f3;
-    }
-
-    .call-bar {
-      background: var(--bg-msg-out);
-      padding: 10px 20px;
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .video-grid {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-    }
-
-    .video-grid video {
-      width: 220px;
-      height: 140px;
-      background: #000;
-      border-radius: 8px;
-      object-fit: cover;
-      display: none;
-    }
-
-    .hangup-btn {
-      background: #e53935;
-      border: none;
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .messages {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .msg {
-      max-width: 68%;
-      padding: 9px 13px;
-      border-radius: 12px;
-      font-size: var(--msg-size);
-      word-wrap: break-word;
-    }
-
-    .msg.incoming {
-      background: var(--bg-msg-in);
-      align-self: flex-start;
-    }
-
-    .msg.outgoing {
-      background: var(--bg-msg-out);
-      align-self: flex-end;
-    }
-
-    .msg-author {
-      font-size: 12px;
-      color: #6ab3f3;
-      margin-bottom: 3px;
-      font-weight: 600;
-    }
-
-    .reply-quote {
-      border-left: 3px solid #6ab3f3;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      margin-bottom: 5px;
-    }
-
-    .spoiler {
-      background: #4a5a6a;
-      color: transparent;
-      border-radius: 4px;
-      padding: 0 4px;
-      cursor: pointer;
-    }
-
-    .spoiler.revealed {
-      background: rgba(255, 255, 255, 0.1);
-      color: inherit;
-    }
-
-    .msg-actions {
-      display: none;
-      gap: 6px;
-      margin-top: 5px;
-      font-size: 12px;
-    }
-
-    .msg:hover .msg-actions {
-      display: flex;
-    }
-
-    .act-link {
-      cursor: pointer;
-      color: #9ec5eb;
-    }
-
-    .msg-img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-top: 4px;
-    }
-
-    .msg-file-box {
-      display: block;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 8px;
-      border-radius: 8px;
-      margin-top: 4px;
-      color: #fff;
-      text-decoration: none;
-    }
-
-    .msg-footer {
-      text-align: right;
-      font-size: 11px;
-      color: #8b9bb4;
-      margin-top: 4px;
-    }
-
-    .reactions-row {
-      display: flex;
-      gap: 4px;
-      margin-top: 4px;
-    }
-
-    .reaction-badge {
-      background: rgba(255, 255, 255, 0.12);
-      padding: 2px 7px;
-      border-radius: 10px;
-      font-size: 12px;
-    }
-
-    .reply-preview-bar {
-      background: var(--bg-side);
-      padding: 8px 16px;
-      border-top: 1px solid #2b3847;
-      display: none;
-      justify-content: space-between;
-      font-size: 13px;
-      color: #6ab3f3;
-    }
-
-    .emoji-picker {
-      position: absolute;
-      bottom: 65px;
-      right: 20px;
-      background: var(--bg-side);
-      border: 1px solid #2b3847;
-      border-radius: 12px;
-      padding: 10px;
-      display: none;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 6px;
-      z-index: 50;
-    }
-
-    .emoji-item {
-      font-size: 20px;
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .input-area {
-      padding: 10px 16px;
-      background: var(--bg-side);
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .icon-btn {
-      background: transparent;
-      border: none;
-      color: #708499;
-      font-size: 19px;
-      cursor: pointer;
-    }
-
-    .icon-btn.active-opt {
-      color: #ff595a;
-    }
-
-    .input-area input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      background: transparent;
-      color: #fff;
-      font-size: 15px;
-      outline: none;
-    }
-
-    .send-icon-btn {
-      background: transparent;
-      border: none;
-      color: var(--accent);
-      font-size: 22px;
-      cursor: pointer;
-    }
-
-    .set-label {
-      display: block;
-      text-align: left;
-      font-size: 12px;
-      color: #8b9bb4;
-      margin-bottom: 4px;
-    }
-
-    .mobile-back-btn {
-      display: none;
-      background: transparent;
-      border: none;
-      color: #6ab3f3;
-      font-size: 22px;
-      cursor: pointer;
-      padding-right: 10px;
-    }
-
-    .mobile-bottom-nav {
-      display: none;
-    }
-
-    .mode-switch-bar {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      margin-bottom: 14px;
-    }
-
-    .mode-btn {
-      flex: 1;
-      padding: 8px;
-      border-radius: 10px;
-      border: 1px solid #2b3847;
-      background: var(--bg-input);
-      color: #8b9bb4;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .mode-btn.active {
-      border-color: #5288c1;
-      background: var(--bg-msg-out);
-      color: #fff;
-    }
-
-    /* Мобильный режим (автоматически на телефонах или при выборе кнопки "Телефон") */
-    body.is-mobile .folders-bar {
-      display: none !important;
-    }
-
-    body.is-mobile .sidebar {
-      width: 100% !important;
-      border-right: none;
-      padding-bottom: 58px;
-    }
-
-    body.is-mobile .chat-area {
-      display: none !important;
-      width: 100% !important;
-    }
-
-    body.is-mobile.mobile-chat-open .sidebar {
-      display: none !important;
-    }
-
-    body.is-mobile.mobile-chat-open .chat-area {
-      display: flex !important;
-    }
-
-    body.is-mobile .mobile-back-btn {
-      display: inline-block;
-    }
-
-    body.is-mobile .msg {
-      max-width: 84%;
-      font-size: 15px;
-    }
-
-    body.is-mobile .modal-box {
-      width: 92% !important;
-      padding: 20px;
-    }
-
-    body.is-mobile .mobile-bottom-nav {
-      display: flex;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 58px;
-      background: var(--bg-side);
-      border-top: 1px solid #222e3c;
-      z-index: 40;
-      justify-content: space-around;
-      align-items: center;
-    }
-
-    body.is-mobile.mobile-chat-open .mobile-bottom-nav {
-      display: none !important;
-    }
-
-    .m-nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      color: #708499;
-      font-size: 11px;
-      cursor: pointer;
-      padding: 4px 12px;
-    }
-
-    .m-nav-item.active {
-      color: #6ab3f3;
-    }
-
-    .m-nav-item span:first-child {
-      font-size: 19px;
-    }
+    :root { --bg-main: #0e1621; --bg-side: #17212b; --bg-input: #242f3d; --bg-msg-in: #182533; --bg-msg-out: #2b5278; --accent: #5288c1; --msg-size: 14.5px; }
+    body.theme-oled { --bg-main: #000; --bg-side: #0d0d0d; --bg-input: #1a1a1a; --bg-msg-in: #141414; --bg-msg-out: #1f3a5c; }
+    body.theme-blue { --bg-main: #101d2c; --bg-side: #1a2c42; --bg-input: #263d59; --bg-msg-in: #1d334d; --bg-msg-out: #326295; }
+    .messages.wall-bg1 { background: url('/image.jpg') repeat; background-size: 340px; }
+    .messages.wall-bg2 { background: url('/image (1).jpg') center/cover no-repeat; }
+    .messages.wall-bg3 { background: url('/image (2).jpg') repeat; background-size: 340px; }
+    .messages.wall-bg4 { background: url('/image (3).jpg') center/cover no-repeat; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", -apple-system, sans-serif; }
+    body { height: 100dvh; background: var(--bg-main); color: #fff; display: flex; overflow: hidden; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal-box { background: var(--bg-side); padding: 26px; border-radius: 16px; width: 390px; text-align: center; max-height: 92dvh; overflow-y: auto; }
+    .tg-logo-img { width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 14px; display: block; object-fit: cover; }
+    .auth-input, .select-input { width: 100%; margin-bottom: 10px; padding: 11px 13px; border-radius: 10px; border: 1px solid #2b3847; background: var(--bg-input); color: #fff; outline: none; font-size: 15px; }
+    .btn-primary { width: 100%; padding: 11px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; font-size: 14px; }
+    .auth-back { margin-top: 12px; font-size: 13px; color: #6ab3f3; cursor: pointer; display: none; }
+    .auth-error { color: #ff595a; font-size: 13px; margin-bottom: 10px; min-height: 18px; }
+    .mode-switch-bar { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+    .mode-btn { flex: 1; padding: 9px; border-radius: 10px; border: 1px solid #2b3847; background: var(--bg-input); color: #8b9bb4; cursor: pointer; font-size: 13px; font-weight: 600; }
+    .mode-btn.active { border-color: #5288c1; background: var(--bg-msg-out); color: #fff; }
+    .folders-bar { width: 72px; background: var(--bg-main); border-right: 1px solid var(--bg-side); display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 6px; }
+    .folder-item { width: 62px; padding: 9px 4px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; color: #708499; font-size: 11px; }
+    .folder-item.active, .folder-item:hover { background: var(--bg-side); color: #6ab3f3; }
+    .bottom-tools { margin-top: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .my-avatar-circle { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; overflow: hidden; }
+    .my-avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+    .sidebar { width: 300px; background: var(--bg-side); border-right: 1px solid var(--bg-main); display: flex; flex-direction: column; }
+    .mobile-top-bar { display: none; padding: 14px 16px 6px; font-size: 20px; font-weight: 700; color: #fff; justify-content: space-between; align-items: center; }
+    .search-box { padding: 10px 12px; }
+    .search-box input { width: 100%; padding: 9px 14px; border-radius: 18px; border: none; background: var(--bg-input); color: #fff; outline: none; font-size: 14px; }
+    .chat-list { flex: 1; overflow-y: auto; }
+    .chat-item { padding: 11px 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .chat-item:hover { background: rgba(255,255,255,0.04); }
+    .chat-item.active { background: var(--bg-msg-out); }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: bold; position: relative; flex-shrink: 0; overflow: hidden; font-size: 17px; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .online-dot { width: 12px; height: 12px; background: #4dcd5e; border-radius: 50%; position: absolute; bottom: 1px; right: 1px; border: 2px solid var(--bg-side); }
+    .chat-info { flex: 1; min-width: 0; }
+    .chat-top { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .chat-name { font-weight: 600; font-size: 15px; }
+    .chat-time { font-size: 11px; color: #6c7883; }
+    .chat-preview { font-size: 13px; color: #8b9bb4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); position: relative; }
+    .chat-header { padding: 10px 16px; background: var(--bg-side); border-bottom: 1px solid var(--bg-main); display: flex; justify-content: space-between; align-items: center; }
+    .mobile-back-btn { display: none; background: transparent; border: none; color: #6ab3f3; font-size: 24px; cursor: pointer; padding-right: 12px; line-height: 1; }
+    .chat-header-title { font-weight: 600; font-size: 15px; }
+    .chat-header-sub { font-size: 12px; color: #4dcd5e; }
+    .call-btn { background: var(--bg-msg-out); color: #fff; border: none; padding: 7px 11px; border-radius: 8px; cursor: pointer; font-weight: bold; display: none; font-size: 13px; }
+    .pin-bar { background: var(--bg-side); padding: 7px 16px; border-bottom: 1px solid var(--bg-main); display: none; justify-content: space-between; font-size: 13px; color: #6ab3f3; }
+    .call-bar { background: var(--bg-msg-out); padding: 10px 16px; display: none; flex-direction: column; gap: 8px; }
+    .video-grid { display: flex; gap: 10px; justify-content: center; }
+    .video-grid video { width: 160px; height: 110px; background: #000; border-radius: 8px; object-fit: cover; display: none; }
+    .hangup-btn { background: #e53935; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .msg { max-width: 75%; padding: 9px 13px; border-radius: 14px; font-size: var(--msg-size); word-wrap: break-word; }
+    .msg.incoming { background: var(--bg-msg-in); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .msg.outgoing { background: var(--bg-msg-out); align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg-author { font-size: 12px; color: #6ab3f3; margin-bottom: 3px; font-weight: 600; }
+    .reply-quote { border-left: 3px solid #6ab3f3; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 5px; }
+    .spoiler { background: #4a5a6a; color: transparent; border-radius: 4px; padding: 0 4px; cursor: pointer; }
+    .spoiler.revealed { background: rgba(255,255,255,0.1); color: inherit; }
+    .msg-actions { display: none; gap: 8px; margin-top: 5px; font-size: 12px; }
+    .msg:hover .msg-actions { display: flex; }
+    .act-link { cursor: pointer; color: #9ec5eb; }
+    .msg-img { max-width: 100%; border-radius: 8px; margin-top: 4px; }
+    .msg-file-box { display: block; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; margin-top: 4px; color: #fff; text-decoration: none; }
+    .msg-footer { text-align: right; font-size: 11px; color: #8b9bb4; margin-top: 4px; }
+    .reactions-row { display: flex; gap: 4px; margin-top: 4px; }
+    .reaction-badge { background: rgba(255,255,255,0.12); padding: 2px 7px; border-radius: 10px; font-size: 12px; }
+    .reply-preview-bar { background: var(--bg-side); padding: 8px 16px; border-top: 1px solid #2b3847; display: none; justify-content: space-between; font-size: 13px; color: #6ab3f3; }
+    .emoji-picker { position: absolute; bottom: 62px; right: 16px; background: var(--bg-side); border: 1px solid #2b3847; border-radius: 12px; padding: 10px; display: none; grid-template-columns: repeat(8, 1fr); gap: 6px; z-index: 50; }
+    .emoji-item { font-size: 20px; cursor: pointer; text-align: center; }
+    .input-area { padding: 8px 12px; background: var(--bg-side); display: flex; gap: 6px; align-items: center; }
+    .icon-btn { background: transparent; border: none; color: #708499; font-size: 20px; cursor: pointer; padding: 4px; }
+    .icon-btn.active-opt { color: #ff595a; }
+    .input-area input[type="text"] { flex: 1; padding: 9px 12px; border-radius: 18px; border: none; background: var(--bg-input); color: #fff; font-size: 15px; outline: none; }
+    .send-icon-btn { background: var(--accent); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .set-label { display: block; text-align: left; font-size: 12px; color: #8b9bb4; margin-bottom: 4px; }
+    .mobile-bottom-nav { display: none; }
+    body.is-mobile .folders-bar { display: none !important; }
+    body.is-mobile .mobile-top-bar { display: flex; }
+    body.is-mobile .sidebar { width: 100% !important; border-right: none; padding-bottom: 60px; }
+    body.is-mobile .chat-area { display: none !important; width: 100% !important; }
+    body.is-mobile.mobile-chat-open .sidebar { display: none !important; }
+    body.is-mobile.mobile-chat-open .chat-area { display: flex !important; }
+    body.is-mobile .mobile-back-btn { display: inline-block; }
+    body.is-mobile .msg { max-width: 84%; font-size: 15px; }
+    body.is-mobile .modal-box { width: 92% !important; padding: 20px; }
+    body.is-mobile .mobile-bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 58px; background: var(--bg-side); border-top: 1px solid #222e3c; z-index: 40; justify-content: space-around; align-items: center; }
+    body.is-mobile.mobile-chat-open .mobile-bottom-nav { display: none !important; }
+    .m-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #708499; font-size: 11px; cursor: pointer; padding: 4px 12px; }
+    .m-nav-item.active { color: #6ab3f3; }
+    .m-nav-item span:first-child { font-size: 20px; }
   </style>
 </head>
-
 <body>
-  <div class="modal-overlay" id="authOverlay" style="background: var(--bg-main);">
+    <div class="modal-overlay" id="authOverlay" style="background: var(--bg-main);">
     <div class="modal-box">
       <img src="/images.png" class="tg-logo-img" alt="TurboGram">
-      <h2 id="authTitle" style="margin-bottom: 8px;">TurboGram</h2>
+      <h2 id="authTitle" style="margin-bottom: 10px;">TurboGram</h2>
       <div class="mode-switch-bar">
         <button class="mode-btn" id="btnModeDesktop" onclick="setDeviceMode('desktop')">💻 Я с ПК</button>
         <button class="mode-btn" id="btnModeMobile" onclick="setDeviceMode('mobile')">📱 Я с телефона</button>
       </div>
-
-      <p id="authSubtitle" style="color: #8b9bb4; font-size: 14px; margin-bottom: 18px;">Введите номер телефона</p>
+      <p id="authSubtitle" style="color: #8b9bb4; font-size: 14px; margin-bottom: 16px;">Введите номер телефона</p>
       <div class="auth-error" id="authError"></div>
       <div id="stepPhone">
         <input type="text" class="auth-input" id="authPhone" placeholder="+7 (999) 000-00-00" autocomplete="off">
         <button class="btn-primary" onclick="checkAccount()">ПРОДОЛЖИТЬ</button>
       </div>
       <div id="stepDetails" style="display: none;">
-        <input type="text" class="auth-input" id="authCode" placeholder="5-значный код из СМС" maxlength="5"
-          autocomplete="off">
+        <input type="text" class="auth-input" id="authCode" placeholder="5-значный код из СМС" maxlength="5" autocomplete="off">
         <input type="text" class="auth-input" id="authName" placeholder="Ваше имя" style="display: none;">
-        <input type="text" class="auth-input" id="authUsername" placeholder="Придумайте @username"
-          style="display: none;">
+        <input type="text" class="auth-input" id="authUsername" placeholder="Придумайте @username" style="display: none;">
         <input type="email" class="auth-input" id="authEmail" placeholder="Email" style="display: none;">
         <input type="password" class="auth-input" id="authPassword" placeholder="Пароль аккаунта">
         <button class="btn-primary" id="finalAuthBtn" onclick="completeAuth()">ПОДТВЕРДИТЬ</button>
@@ -706,69 +126,51 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="settingsModal" style="display: none;"
-    onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-overlay" id="settingsModal" style="display: none;" onclick="if(event.target===this)this.style.display='none'">
     <div class="modal-box">
       <h3 style="margin-bottom: 12px;">⚙️ Настройки TurboGram</h3>
+      <div class="mode-switch-bar">
+        <button class="mode-btn" id="btnSetDesktop" onclick="setDeviceMode('desktop')">💻 Режим ПК</button>
+        <button class="mode-btn" id="btnSetMobile" onclick="setDeviceMode('mobile')">📱 Режим Телефона</button>
+      </div>
       <span class="set-label">Мои аккаунты (до 3)</span>
       <div id="accountsList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;"></div>
-      <div id="modalAvatar"
-        style="width: 72px; height: 72px; border-radius: 50%; background: var(--accent); margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold; overflow: hidden;">
-        ?</div>
+      <div id="modalAvatar" style="width: 72px; height: 72px; border-radius: 50%; background: var(--accent); margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold; overflow: hidden;">?</div>
       <div id="modalPhone" style="color: #8b9bb4; font-size: 13px; margin-bottom: 10px;">+7...</div>
-      <button class="btn-primary" style="margin-bottom: 12px; background: var(--bg-msg-out);"
-        onclick="$('avatarInput').click()">📷 Сменить фото профиля</button>
+      <button class="btn-primary" style="margin-bottom: 12px; background: var(--bg-msg-out);" onclick="$('avatarInput').click()">📷 Сменить фото профиля</button>
       <span class="set-label">Ваш @username</span>
       <input type="text" class="auth-input" id="editUsernameInput" placeholder="@username">
       <span class="set-label">Email и новый пароль</span>
       <div style="display: flex; gap: 6px; margin-bottom: 10px;">
         <input type="email" class="auth-input" id="editEmailInput" placeholder="Email" style="margin-bottom: 0;">
-        <input type="password" class="auth-input" id="editPassInput" placeholder="Новый пароль"
-          style="margin-bottom: 0;">
+        <input type="password" class="auth-input" id="editPassInput" placeholder="Новый пароль" style="margin-bottom: 0;">
       </div>
       <span class="set-label">Имя и Эмодзи-статус</span>
       <div style="display: flex; gap: 6px; margin-bottom: 10px;">
         <input type="text" class="auth-input" id="editNameInput" placeholder="Имя" style="margin-bottom: 0;">
         <select class="select-input" id="editStatusInput" style="width: 85px; margin-bottom: 0;">
-          <option value="⚡">⚡</option>
-          <option value="👑">👑</option>
-          <option value="🔥">🔥</option>
-          <option value="😎">😎</option>
-          <option value="🎮">🎮</option>
-          <option value="">Нет</option>
+          <option value="⚡">⚡</option><option value="👑">👑</option><option value="🔥">🔥</option><option value="😎">😎</option><option value="🎮">🎮</option><option value="">Нет</option>
         </select>
       </div>
       <span class="set-label">Тема оформления</span>
       <select class="select-input" id="themeSelect" onchange="applyTheme(this.value)">
-        <option value="default">Классическая тёмная</option>
-        <option value="oled">Ночная чёрная (OLED)</option>
-        <option value="blue">Глубокая синяя</option>
+        <option value="default">Классическая тёмная</option><option value="oled">Ночная чёрная (OLED)</option><option value="blue">Глубокая синяя</option>
       </select>
       <span class="set-label">Обои чата</span>
       <select class="select-input" id="wallSelect" onchange="applyWallpaper(this.value)">
-        <option value="none">Без обоев</option>
-        <option value="bg1">Изумрудный узор</option>
-        <option value="bg2">Чёрный самолётик</option>
-        <option value="bg3">Светлый паттерн</option>
-        <option value="bg4">Чёрно-красный гранж</option>
+        <option value="none">Без обоев</option><option value="bg1">Изумрудный узор</option><option value="bg2">Чёрный самолётик</option><option value="bg3">Светлый паттерн</option><option value="bg4">Чёрно-красный гранж</option>
       </select>
       <span class="set-label">Размер текста</span>
       <select class="select-input" id="fontSizeSelect" onchange="applyFontSize(this.value)">
-        <option value="13px">Мелкий (13px)</option>
-        <option value="14.5px" selected>Обычный (14.5px)</option>
-        <option value="17px">Крупный (17px)</option>
+        <option value="13px">Мелкий (13px)</option><option value="14.5px" selected>Обычный (14.5px)</option><option value="17px">Крупный (17px)</option>
       </select>
-      <button class="btn-primary" style="background: #2ea6ff; margin-top: 6px; margin-bottom: 8px;"
-        onclick="saveAllSettings()">💾 Сохранить все настройки</button>
-      <button class="btn-primary" style="background: #e53935;" onclick="removeSavedAccount(myId)">🚪 Выйти из
-        аккаунта</button>
+      <button class="btn-primary" style="background: #2ea6ff; margin-top: 6px; margin-bottom: 8px;" onclick="saveAllSettings()">💾 Сохранить все настройки</button>
+      <button class="btn-primary" style="background: #e53935;" onclick="removeSavedAccount(myId)">🚪 Выйти из аккаунта</button>
     </div>
   </div>
-
-  <div class="folders-bar">
+    <div class="folders-bar">
     <div class="folder-item active" id="folder-all" onclick="setFolder('all')"><span>💬</span><span>Все</span></div>
-    <div class="folder-item" id="folder-personal" onclick="setFolder('personal')"><span>👤</span><span>Личные</span>
-    </div>
+    <div class="folder-item" id="folder-personal" onclick="setFolder('personal')"><span>👤</span><span>Личные</span></div>
     <div class="folder-item" id="folder-groups" onclick="setFolder('groups')"><span>👥</span><span>Группы</span></div>
     <div class="bottom-tools">
       <div class="folder-item" onclick="openSettings()"><span>⚙️</span><span>Настройки</span></div>
@@ -781,8 +183,8 @@
   </div>
 
   <div class="sidebar">
-    <div class="search-box"><input type="text" id="searchInput" placeholder="Поиск по @username..."
-        oninput="renderChatList()"></div>
+    <div class="mobile-top-bar"><span>TurboGram</span></div>
+    <div class="search-box"><input type="text" id="searchInput" placeholder="Поиск по @username..." oninput="renderChatList()"></div>
     <div class="chat-list" id="chatList"></div>
   </div>
 
@@ -790,57 +192,40 @@
     <div class="chat-header">
       <div style="display: flex; align-items: center;">
         <button class="mobile-back-btn" onclick="closeMobileChat()">←</button>
-        <div>
-          <div class="chat-header-title" id="chatTitle">Избранное</div>
-          <div class="chat-header-sub" id="chatSubtitle">Личное облачное хранилище</div>
-        </div>
+        <div><div class="chat-header-title" id="chatTitle">Избранное</div><div class="chat-header-sub" id="chatSubtitle">Личное облачное хранилище</div></div>
       </div>
-
-      <div>
-        <div class="chat-header-title" id="chatTitle">Избранное</div>
-        <div class="chat-header-sub" id="chatSubtitle">Личное облачное хранилище</div>
-      </div>
-      <div style="display: flex; gap: 8px;"><button class="call-btn" id="callBtn" onclick="startCall(false)">📞
-          Звонок</button><button class="call-btn" id="videoBtn" onclick="startCall(true)">📹 Видео</button></div>
+      <div style="display: flex; gap: 8px;"><button class="call-btn" id="callBtn" onclick="startCall(false)">📞 Звонок</button><button class="call-btn" id="videoBtn" onclick="startCall(true)">📹 Видео</button></div>
     </div>
-    <div class="pin-bar" id="pinBar"><span id="pinText">📌 Закреплённое сообщение</span><span style="cursor: pointer;"
-        onclick="$('pinBar').style.display='none'">✕</span></div>
+    <div class="pin-bar" id="pinBar"><span id="pinText">📌 Закреплённое сообщение</span><span style="cursor: pointer;" onclick="$('pinBar').style.display='none'">✕</span></div>
     <div class="call-bar" id="callBar">
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;"><span
-          id="callStatus">🔒 Звонок...</span>
-        <div style="display: flex; gap: 8px;"><button class="hangup-btn" style="background: #5288c1;"
-            onclick="shareScreen()">🖥️ Экран</button><button class="hangup-btn"
-            onclick="endCall(true)">Завершить</button></div>
-      </div>
-      <div class="video-grid"><video id="localVideo" autoplay muted></video><video id="remoteVideo" autoplay></video>
-      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;"><span id="callStatus">🔒 Звонок...</span><div style="display: flex; gap: 8px;"><button class="hangup-btn" style="background: #5288c1;" onclick="shareScreen()">🖥️ Экран</button><button class="hangup-btn" onclick="endCall(true)">Завершить</button></div></div>
+      <div class="video-grid"><video id="localVideo" autoplay muted></video><video id="remoteVideo" autoplay></video></div>
     </div>
     <div class="messages" id="messages"></div>
     <div class="emoji-picker" id="emojiPicker"></div>
-    <div class="reply-preview-bar" id="replyBar"><span id="replyPreviewText">Ответ...</span><span
-        style="cursor: pointer;" onclick="cancelReply()">✕</span></div>
+    <div class="reply-preview-bar" id="replyBar"><span id="replyPreviewText">Ответ...</span><span style="cursor: pointer;" onclick="cancelReply()">✕</span></div>
     <div class="input-area">
       <button class="icon-btn" onclick="$('fileInput').click()">📎</button>
       <input type="file" id="fileInput" style="display: none;" onchange="sendFile(event)">
       <button class="icon-btn" id="timerBtn" onclick="toggleSelfDestruct()">⏱️</button>
-      <input type="text" id="msgInput" placeholder="Написать сообщение..." autocomplete="off">
+      <input type="text" id="msgInput" placeholder="Сообщение..." autocomplete="off">
       <button class="icon-btn" onclick="toggleEmojiPicker()">😊</button>
       <button class="icon-btn" id="voiceBtn" onclick="toggleVoiceRecord()">🎤</button>
       <button class="send-icon-btn" onclick="sendMessage()">➤</button>
     </div>
   </div>
+
   <div class="mobile-bottom-nav">
-    <div class="m-nav-item active" id="m-nav-all" onclick="setMobileTab('all')"><span>💬</span><span>Все чаты</span>
-    </div>
-    <div class="m-nav-item" id="m-nav-personal" onclick="setMobileTab('personal')"><span>👤</span><span>Личные</span>
-    </div>
+    <div class="m-nav-item active" id="m-nav-all" onclick="setMobileTab('all')"><span>💬</span><span>Все чаты</span></div>
+    <div class="m-nav-item" id="m-nav-personal" onclick="setMobileTab('personal')"><span>👤</span><span>Личные</span></div>
     <div class="m-nav-item" id="m-nav-groups" onclick="setMobileTab('groups')"><span>👥</span><span>Группы</span></div>
     <div class="m-nav-item" onclick="openSettings()"><span>⚙️</span><span>Настройки</span></div>
   </div>
-  <audio id="remoteAudio" autoplay></audio>
-  <script src="/client.js?v=13"></script>
-  <audio id="remoteAudio" autoplay></audio>
-  <script src="/client.js?v=12"></script>
-</body>
 
+  <audio id="remoteAudio" autoplay></audio>
+  <script src="/client.js?v=14"></script>
+</body>
 </html>
+
+
+

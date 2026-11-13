@@ -12,6 +12,32 @@ ws.onopen = () => {
   if (activeAccountId) ws.send(JSON.stringify({ type: 'auto_login', id: activeAccountId }));
 };
 
+function setDeviceMode(mode) {
+  localStorage.setItem('tg_device_mode', mode);
+  const isMob = mode === 'mobile';
+  document.body.classList.toggle('is-mobile', isMob);
+  ['btnModeMobile', 'btnSetMobile'].forEach(id => { if ($(id)) $(id).classList.toggle('active', isMob); });
+  ['btnModeDesktop', 'btnSetDesktop'].forEach(id => { if ($(id)) $(id).classList.toggle('active', !isMob); });
+}
+
+function initDeviceMode() {
+  const savedMode = localStorage.getItem('tg_device_mode');
+  if (savedMode) setDeviceMode(savedMode);
+  else {
+    const autoMob = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    setDeviceMode(autoMob ? 'mobile' : 'desktop');
+  }
+}
+initDeviceMode();
+
+function closeMobileChat() { document.body.classList.remove('mobile-chat-open'); }
+function setMobileTab(tab) {
+  setFolder(tab);
+  document.querySelectorAll('.m-nav-item').forEach(el => el.classList.remove('active'));
+  if ($('m-nav-' + tab)) $('m-nav-' + tab).classList.add('active');
+  closeMobileChat();
+}
+
 const pkr = $('emojiPicker');
 ['😀','😂','🥰','😎','🤔','😭','👍','❤️','🔥','🎉','👏','🙏','💯','✨','⚡','✈️'].forEach(em => {
   const s = document.createElement('span');
@@ -21,7 +47,7 @@ const pkr = $('emojiPicker');
 });
 const toggleEmojiPicker = () => { if (pkr) pkr.style.display = pkr.style.display === 'grid' ? 'none' : 'grid'; };
 
-function applyTheme(t) { document.body.className = t === 'default' ? '' : 'theme-' + t; }
+function applyTheme(t) { document.body.classList.toggle('theme-oled', t === 'oled'); document.body.classList.toggle('theme-blue', t === 'blue'); }
 function applyFontSize(sz) { document.documentElement.style.setProperty('--msg-size', sz); }
 function applyWallpaper(w) { $('messages').className = 'messages' + (w === 'none' ? '' : ' wall-' + w); }
 
@@ -33,35 +59,6 @@ function loadSavedUiSettings() {
   if (saved.fontSz) { applyFontSize(saved.fontSz); if ($('fontSizeSelect')) $('fontSizeSelect').value = saved.fontSz; }
 }
 loadSavedUiSettings();
-function setDeviceMode(mode) {
-  localStorage.setItem('tg_device_mode', mode);
-  const isMob = mode === 'mobile';
-  document.body.classList.toggle('is-mobile', isMob);
-  if ($('btnModeMobile')) $('btnModeMobile').classList.toggle('active', isMob);
-  if ($('btnModeDesktop')) $('btnModeDesktop').classList.toggle('active', !isMob);
-}
-
-function initDeviceMode() {
-  const savedMode = localStorage.getItem('tg_device_mode');
-  if (savedMode) {
-    setDeviceMode(savedMode);
-  } else {
-    const autoMob = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    setDeviceMode(autoMob ? 'mobile' : 'desktop');
-  }
-}
-initDeviceMode();
-
-function closeMobileChat() {
-  document.body.classList.remove('mobile-chat-open');
-}
-
-function setMobileTab(tab) {
-  setFolder(tab);
-  document.querySelectorAll('.m-nav-item').forEach(el => el.classList.remove('active'));
-  if ($('m-nav-' + tab)) $('m-nav-' + tab).classList.add('active');
-  closeMobileChat();
-}
 
 function openSettings() {
   $('editNameInput').value = myName;
@@ -88,16 +85,13 @@ function saveAllSettings() {
   if (n) { myName = n; $('myProfileName').textContent = myName.slice(0, 8); }
   myUname = u; myEmail = em; myStatus = st;
 
-  applyTheme(theme);
-  applyWallpaper(wall);
-  applyFontSize(fontSz);
+  applyTheme(theme); applyWallpaper(wall); applyFontSize(fontSz);
   localStorage.setItem('tg_ui_settings', JSON.stringify({ theme, wall, fontSz }));
 
   ws.send(JSON.stringify({ type: 'update_profile', name: myName, username: myUname, email: myEmail, password: pw, status: myStatus }));
   $('settingsModal').style.display = 'none';
   alert('✅ Настройки успешно сохранены!');
 }
-
 function renderAccountsList() {
   const box = $('accountsList'); if (!box) return;
   box.innerHTML = '';
@@ -187,6 +181,7 @@ ws.onmessage = async ev => {
     $('myProfileName').textContent = myName.slice(0, 8);
     $('myAvatarBox').innerHTML = d.avatar ? `<img src="${d.avatar}">` : myName.slice(0, 1).toUpperCase();
     selectChat('saved', 'Избранное');
+    closeMobileChat();
   }
   if (d.type === 'users_list') { users = d.users; renderChatList(); }
   if (d.type === 'history') {
@@ -217,10 +212,7 @@ ws.onmessage = async ev => {
   if (d.type === 'reaction') {
     const k = d.to === 'general' ? 'general' : (d.fromId === myId ? d.to : d.fromId);
     const m = (hist[k] || []).find(x => x.msgId === d.msgId);
-        if (m) {
-      m.reactions[d.emoji] = (m.reactions[d.emoji] || 0) + 1;
-      if (chat === k) renderMessages();
-    }
+    if (m) { m.reactions[d.emoji] = (m.reactions[d.emoji] || 0) + 1; if (chat === k) renderMessages(); }
   }
   if (d.type === 'call_offer') handleOffer(d);
   if (d.type === 'call_answer' && pc) await pc.setRemoteDescription(new RTCSessionDescription(d.answer));
@@ -230,7 +222,7 @@ ws.onmessage = async ev => {
 function setFolder(f) {
   folder = f;
   document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('active'));
-  $('folder-' + f).classList.add('active');
+  if ($('folder-' + f)) $('folder-' + f).classList.add('active');
   renderChatList();
 }
 
@@ -278,8 +270,8 @@ function selectChat(id, title) {
   renderChatList();
   renderMessages();
   document.body.classList.add('mobile-chat-open');
-
 }
+
 function formatSpoilers(str) { return str.replace(/\|\|(.+?)\|\|/g, '<span class="spoiler" onclick="this.classList.toggle(\'revealed\')">$1</span>'); }
 function setReply(name, text) { replyTo = { name, text }; $('replyPreviewText').textContent = `Ответ для ${name}: ${text}`; $('replyBar').style.display = 'flex'; $('msgInput').focus(); }
 function cancelReply() { replyTo = null; $('replyBar').style.display = 'none'; }
@@ -378,33 +370,56 @@ async function setupPC(id, withVideo) {
   pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:://google.com' }] });
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withVideo }); }
   catch (e) { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
-  stream.getTracks().forEach(t => pc.addTrack(t, stream));
-  if (withVideo && stream.getVideoTracks().length) { $('localVideo').srcObject = stream; $('localVideo').style.display = 'block'; }
+    stream.getTracks().forEach(t => pc.addTrack(t, stream));
+  if (withVideo && stream.getVideoTracks().length) {
+    $('localVideo').srcObject = stream;
+    $('localVideo').style.display = 'block';
+  }
   pc.ontrack = e => {
     const remStream = e.streams.at(0) || new MediaStream([e.track]);
-    $('remoteAudio').srcObject = remStream; $('remoteAudio').play().catch(() => {});
-    if (remStream.getVideoTracks().length) { $('remoteVideo').srcObject = remStream; $('remoteVideo').style.display = 'block'; }
+    $('remoteAudio').srcObject = remStream;
+    $('remoteAudio').play().catch(() => {});
+    if (remStream.getVideoTracks().length) {
+      $('remoteVideo').srcObject = remStream;
+      $('remoteVideo').style.display = 'block';
+    }
   };
-  pc.onicecandidate = e => { if (e.candidate) ws.send(JSON.stringify({ type: 'ice_candidate', to: id, candidate: e.candidate })); };
+  pc.onicecandidate = e => {
+    if (e.candidate) ws.send(JSON.stringify({ type: 'ice_candidate', to: id, candidate: e.candidate }));
+  };
 }
 
 async function startCall(withVideo) {
   if (chat === 'general' || chat === 'saved') return;
   try {
-    $('callBar').style.display = 'flex'; $('callStatus').textContent = withVideo ? '📹 Видеозвонок...' : '📞 Звонок...';
-    await setupPC(chat, withVideo); const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+    $('callBar').style.display = 'flex';
+    $('callStatus').textContent = withVideo ? '📹 Видеозвонок...' : '📞 Звонок...';
+    await setupPC(chat, withVideo);
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
     ws.send(JSON.stringify({ type: 'call_offer', to: chat, offer, withVideo }));
-  } catch (err) { alert('Ошибка звонка: ' + err.message); endCall(false); }
+  } catch (err) {
+    alert('Ошибка звонка: ' + err.message);
+    endCall(false);
+  }
 }
 
 async function handleOffer(d) {
-  if (!confirm(`Входящий звонок от ${d.fromName}. Ответить?`)) return ws.send(JSON.stringify({ type: 'call_end', to: d.fromId }));
+  if (!confirm(`Входящий звонок от ${d.fromName}. Ответить?`)) {
+    return ws.send(JSON.stringify({ type: 'call_end', to: d.fromId }));
+  }
   try {
-    $('callBar').style.display = 'flex'; $('callStatus').textContent = `🔒 Связь с ${d.fromName}`;
-    await setupPC(d.fromId, d.withVideo); await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
-    const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+    $('callBar').style.display = 'flex';
+    $('callStatus').textContent = `🔒 Связь с ${d.fromName}`;
+    await setupPC(d.fromId, d.withVideo);
+    await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
     ws.send(JSON.stringify({ type: 'call_answer', to: d.fromId, answer }));
-  } catch (err) { alert('Ошибка ответа: ' + err.message); endCall(true); }
+  } catch (err) {
+    alert('Ошибка ответа: ' + err.message);
+    endCall(true);
+  }
 }
 
 async function shareScreen() {
@@ -413,13 +428,19 @@ async function shareScreen() {
   const track = scr.getVideoTracks().at(0);
   const sender = pc.getSenders().find(s => s.track?.kind === 'video');
   if (sender) sender.replaceTrack(track); else pc.addTrack(track, scr);
-  $('localVideo').srcObject = scr; $('localVideo').style.display = 'block';
+  $('localVideo').srcObject = scr;
+  $('localVideo').style.display = 'block';
 }
 
 function endCall(notify) {
   if (notify && partner) ws.send(JSON.stringify({ type: 'call_end', to: partner }));
   if (pc) { pc.close(); pc = null; }
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  $('callBar').style.display = 'none'; $('localVideo').style.display = 'none'; $('remoteVideo').style.display = 'none';
+  $('callBar').style.display = 'none';
+  $('localVideo').style.display = 'none';
+  $('remoteVideo').style.display = 'none';
   partner = null;
 }
+
+
+
