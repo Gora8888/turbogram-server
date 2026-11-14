@@ -427,20 +427,32 @@ function renderChatList() {
 }
 
 function updateChatHeader() {
-  const sub = $('chatSubtitle'), hAva = $('headerAvatar');
+  const sub = $('chatSubtitle'), hAva = $('headerAvatar'), rAva = $('iosRightAvatar'), badge = $('iosTotalUnread');
   sub.className = 'chat-header-sub';
-  if (chat === 'saved') { sub.textContent = 'облачное хранилище'; if (hAva) hAva.innerHTML = '🔖'; }
-  else if (chat === 'general') {
+
+  const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+  if (badge) {
+    badge.style.display = totalUnread > 0 ? 'inline-block' : 'none';
+    badge.textContent = totalUnread;
+  }
+
+  let avaHtml = '🔖';
+  if (chat === 'saved') {
+    sub.textContent = 'облачное хранилище';
+    avaHtml = '🔖';
+  } else if (chat === 'general') {
     sub.textContent = typingUsers.general ? `${typingUsers.general} печатает...` : `${users.length} участников`;
     if (typingUsers.general) sub.classList.add('is-typing');
-    if (hAva) hAva.innerHTML = 'TG';
+    avaHtml = 'TG';
   } else {
     const u = users.find(x => x.id === chat);
-    if (hAva) hAva.innerHTML = u?.avatar ? `<img src="${u.avatar}">` : (u?.name || '?').slice(0, 1).toUpperCase();
+    avaHtml = u?.avatar ? `<img src="${u.avatar}">` : (u?.name || '?').slice(0, 1).toUpperCase();
     if (typingUsers[chat]) { sub.textContent = 'печатает...'; sub.classList.add('is-typing'); }
     else if (u?.online) { sub.textContent = 'в сети'; sub.classList.add('is-online'); }
     else sub.textContent = u?.username ? `@${u.username}` : 'был(а) недавно';
   }
+  if (hAva) hAva.innerHTML = avaHtml;
+  if (rAva) rAva.innerHTML = avaHtml;
 }
 
 function selectChat(id, title) {
