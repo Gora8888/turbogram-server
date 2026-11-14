@@ -1,204 +1,295 @@
-const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const WebSocket = require('ws');
 
-const USERS_FILE = path.join(__dirname, 'users.json');
-let users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8')) : {};
-function saveUsers() { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); }
+const PORT = process.env.PORT || 3000;
+const DATA_DIR = fs.existsSync('/data') ? '/data' : __dirname;
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
 
-const MSGS_FILE = path.join(__dirname, 'messages.json');
-let savedMessages = fs.existsSync(MSGS_FILE) ? JSON.parse(fs.readFileSync(MSGS_FILE, 'utf-8')) : [];
-function saveMessages() { fs.writeFileSync(MSGS_FILE, JSON.stringify(savedMessages.slice(-500), null, 2)); }
+let users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')) : {};
+let history = fs.existsSync(HISTORY_FILE) ? JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')) : [];
+const clients = new Map();
 
-// Шифр Вернама (XOR со случайным ключом равной длины)
-function encryptVernam(plainText) {
-  const textBuf = Buffer.from(plainText, 'utf-8');
-  const keyBuf = crypto.randomBytes(textBuf.length);
-  const cipherBuf = Buffer.alloc(textBuf.length);
-  for (let i = 0; i < textBuf.length; i++) {
-    cipherBuf[i] = textBuf[i] ^ keyBuf[i];
+const saveUsers = () => fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+const saveHistory = () => fs.writeFileSync(HISTORY_FILE, JSON.stringify(history.slice(-1000), null, 2));
+
+const VERNAM_KEY = Buffer.from(process.env.VERNAM_KEY || 'TurboGramSuperSecretVernamKey2026!@#', 'utf8');
+
+function vernamEncrypt(text) {
+  if (!text) return '';
+  const data = Buffer.from(String(text), 'utf8');
+  const nonce = crypto.randomBytes(16);
+  const out = Buffer.alloc(data.length);
+  for (let i = 0; i < data.length; i++) {
+    out[i] = data[i] ^ VERNAM_KEY[i % VERNAM_KEY.length] ^ nonce[i % nonce.length];
   }
-  return { cipher: cipherBuf.toString('hex'), key: keyBuf.toString('hex') };
+  return nonce.toString('hex') + ':' + out.toString('base64');
 }
 
-function decryptVernam(cipherHex, keyHex) {
-  const cipherBuf = Buffer.from(cipherHex, 'hex');
-  const keyBuf = Buffer.from(keyHex, 'hex');
-  const plainBuf = Buffer.alloc(cipherBuf.length);
-  for (let i = 0; i < cipherBuf.length; i++) {
-    plainBuf[i] = cipherBuf[i] ^ keyBuf[i];
+function vernamDecrypt(enc) {
+  if (!enc || !String(enc).includes(':')) return enc || '';
+  try {
+    const [nHex, b64] = String(enc).split(':');
+    const nonce = Buffer.from(nHex, 'hex');
+    const data = Buffer.from(b64, 'base64');
+    const out = Buffer.alloc(data.length);
+    for (let i = 0; i < data.length; i++) {
+      out[i] = data[i] ^ VERNAM_KEY[i % VERNAM_KEY.length] ^ nonce[i % nonce.length];
+    }
+    return out.toString('utf8');
+  } catch {
+    return enc;
   }
-  return plainBuf.toString('utf-8');
+}
+
+function normalizePhone(raw) {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length === 11 && digits.startsWith('8')) return '+7' + digits.slice(1);
+  return '+' + digits;
 }
 
 const server = http.createServer((req, res) => {
-  const cleanUrl = decodeURI(req.url).split('?').at(0);
-  const fileName = cleanUrl === '/' ? 'index.html' : cleanUrl.slice(1);
-  const filePath = path.join(__dirname, fileName);
+  const urlPath = req.url.split('?')[0];
+  const filePath = path.join(__dirname, urlPath === '/' ? 'index.html' : urlPath);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-    const ext = path.extname(fileName);
-    const types = { '.html': 'text/html', '.js': 'application/javascript', '.json': 'application/manifest+json', '.png': 'image/png', '.jpg': 'image/jpeg' };
-    res.writeHead(200, { 'Content-Type': (types[ext] || 'text/plain') + '; charset=utf-8' });
+    const ext = path.extname(filePath);
+    const types = {
+      '.html': 'text/html; charset=utf-8',
+      '.js': 'application/javascript; charset=utf-8',
+      '.json': 'application/manifest+json',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.ico': 'image/x-icon'
+    };
+    res.writeHead(200, { 'Content-Type': types[ext] || 'application/octet-stream' });
     fs.createReadStream(filePath).pipe(res);
-  } else { res.writeHead(404); res.end('Not found'); }
+  } else {
+    res.writeHead(404);
+    res.end('Not found');
+  }
 });
 
-const wss = new WebSocket.Server({ server, maxPayload: 30 * 1024 * 1024 });
-const onlineClients = new Map();
-const pendingCodes = {};
+const wss = new WebSocket.Server({ server });
 
-function broadcastUsersList() {
-  const allUsers = Object.keys(users).map((id) => {
-    const c = onlineClients.get(id);
-    return { id, name: users[id].name || id, username: users[id].username || '', avatar: users[id].avatar || null, status: users[id].status || '', online: !!c };
-  });
-  const payload = JSON.stringify({ type: 'users_list', users: allUsers });
-  onlineClients.forEach((c) => { if (c.ws.readyState === WebSocket.OPEN) c.ws.send(payload); });
+function broadcastUsers() {
+  const list = Object.values(users).map(u => ({
+    id: u.id,
+    name: u.name,
+    username: u.username || '',
+    status: u.status || '',
+    avatar: u.avatar || '',
+    online: clients.has(u.id)
+  }));
+  const payload = JSON.stringify({ type: 'users_list', users: list });
+  wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(payload); });
 }
 
-function routeToTarget(to, fromId, payload) {
+function sendHistory(ws, userId) {
+  const userMsgs = history
+    .filter(m => m.to === 'general' || m.to === userId || m.fromId === userId)
+    .map(m => ({ ...m, text: m.text ? vernamDecrypt(m.text) : '' }));
+  ws.send(JSON.stringify({ type: 'history', messages: userMsgs }));
+}
+
+function routeToTarget(to, payloadStr, senderWs) {
   if (to === 'general') {
-    onlineClients.forEach((c) => { if (c.ws.readyState === WebSocket.OPEN) c.ws.send(payload); });
-  } else if (to === fromId) {
-    const self = onlineClients.get(fromId);
-    if (self && self.ws.readyState === WebSocket.OPEN) self.ws.send(payload);
+    wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(payloadStr); });
   } else {
-    const target = onlineClients.get(to);
-    if (target && target.ws.readyState === WebSocket.OPEN) target.ws.send(payload);
+    const targetWs = clients.get(to);
+    if (targetWs && targetWs.readyState === WebSocket.OPEN) targetWs.send(payloadStr);
+    if (senderWs && senderWs !== targetWs && senderWs.readyState === WebSocket.OPEN) senderWs.send(payloadStr);
   }
 }
 
-wss.on('connection', (ws) => {
-  let currentUserId = null;
+wss.on('connection', ws => {
+  let myId = null;
 
-  ws.on('message', (raw) => {
-    const data = JSON.parse(raw.toString());
-            if (data.id) {
-      const digits = String(data.id).replace(/\D/g, '');
-      data.id = (digits.length === 11 && digits.startsWith('8')) ? '+7' + digits.slice(1) : '+' + digits;
-    }
+  ws.on('message', raw => {
+    let data;
+    try { data = JSON.parse(raw.toString()); } catch { return; }
 
-    if (data.type === 'request_code') {
-      const id = data.id.trim();
-      if (!id) return ws.send(JSON.stringify({ type: 'auth_error', message: 'Введите номер телефона' }));
-      const code = Math.floor(10000 + Math.random() * 90000).toString();
-      pendingCodes[id] = code;
-      console.log(`[СМС-код для ${id}]: ${code}`);
-      const exists = !!users[id];
-      ws.send(JSON.stringify({ type: 'code_sent', id, exists, name: exists ? users[id].name : '', demoCode: code }));
-    }
-
-    if (data.type === 'verify_auth') {
-      const id = data.id.trim();
-      if (!pendingCodes[id] || pendingCodes[id] !== data.code.trim()) {
-        return ws.send(JSON.stringify({ type: 'auth_error', message: 'Неверный код из СМС!' }));
-      }
-
-      if (!users[id]) {
-        const name = (data.name || '').trim();
-        const email = (data.email || '').trim();
-        const password = (data.password || '').trim();
-        const uname = (data.username || '').trim().replace(/^@/, '').toLowerCase();
-        if (!name || !email || !password) return ws.send(JSON.stringify({ type: 'auth_error', message: 'Заполните имя, Email и пароль!' }));
-        if (uname && Object.values(users).some(u => u.username === uname)) {
-          return ws.send(JSON.stringify({ type: 'auth_error', message: 'Этот @username уже занят!' }));
-        }
-        const vernam = encryptVernam(password);
-        users[id] = {
-          name, email,
-          username: uname || ('user' + Math.floor(1000 + Math.random() * 9000)),
-          vernamCipher: vernam.cipher,
-          vernamKey: vernam.key,
-          avatar: null, status: '⚡'
-        };
-        saveUsers();
-      } else {
-        const pass = (data.password || '').trim();
-        if (users[id].vernamCipher && users[id].vernamKey) {
-          const originalPass = decryptVernam(users[id].vernamCipher, users[id].vernamKey);
-          if (pass !== originalPass) {
-            return ws.send(JSON.stringify({ type: 'auth_error', message: 'Неверный пароль аккаунта!' }));
-          }
-        }
-      }
-
-      delete pendingCodes[id];
-      currentUserId = id;
-      onlineClients.set(id, { ws });
-      ws.send(JSON.stringify({
-        type: 'auth_success', id, name: users[id].name, email: users[id].email || '',
-        username: users[id].username, avatar: users[id].avatar, status: users[id].status || ''
-      }));
-      broadcastUsersList();
-      const userHistory = savedMessages.filter(m => m.to === 'general' || m.to === id || m.fromId === id);
-      ws.send(JSON.stringify({ type: 'history', messages: userHistory }));
-    }
+    if (data.id) data.id = normalizePhone(data.id);
 
     if (data.type === 'auto_login') {
-      const id = (data.id || '').trim();
-      if (!id || !users[id]) return ws.send(JSON.stringify({ type: 'auto_login_failed', id }));
-      currentUserId = id;
-      onlineClients.set(id, { ws });
-      ws.send(JSON.stringify({
-        type: 'auth_success', id, name: users[id].name, email: users[id].email || '',
-        username: users[id].username, avatar: users[id].avatar, status: users[id].status || ''
-      }));
-      broadcastUsersList();
-      const userHistory = savedMessages.filter(m => m.to === 'general' || m.to === id || m.fromId === id);
-      ws.send(JSON.stringify({ type: 'history', messages: userHistory }));
+      let u = users[data.id];
+      if (!u && data.savedProfile && data.savedProfile.name) {
+        u = users[data.id] = {
+          id: data.id,
+          name: data.savedProfile.name,
+          username: data.savedProfile.username || '',
+          email: data.savedProfile.email || '',
+          password: data.savedProfile.password || '',
+          status: data.savedProfile.status || '⚡',
+          avatar: data.savedProfile.avatar || ''
+        };
+        saveUsers();
+      }
+      if (!u) return ws.send(JSON.stringify({ type: 'auto_login_failed', id: data.id }));
+      myId = data.id;
+      clients.set(myId, ws);
+      ws.send(JSON.stringify({ type: 'auth_success', ...u }));
+      broadcastUsers();
+      sendHistory(ws, myId);
+      return;
     }
 
-    if (data.type === 'update_profile' && currentUserId && users[currentUserId]) {
-      if (data.avatar !== undefined) users[currentUserId].avatar = data.avatar;
-      if (data.name && data.name.trim()) users[currentUserId].name = data.name.trim();
-      if (data.email !== undefined) users[currentUserId].email = data.email.trim();
-      if (data.status !== undefined) users[currentUserId].status = data.status;
-      if (data.password && data.password.trim()) {
-        const vernam = encryptVernam(data.password.trim());
-        users[currentUserId].vernamCipher = vernam.cipher;
-        users[currentUserId].vernamKey = vernam.key;
+    if (data.type === 'check_phone') {
+      const u = users[data.id];
+      ws.send(JSON.stringify({ type: 'phone_checked', id: data.id, exists: !!u, hasPassword: !!(u && u.password) }));
+      return;
+    }
+
+    if (data.type === 'direct_auth') {
+      let u = users[data.id];
+      if (u) {
+        if (u.password && u.password !== String(data.password || '').trim()) {
+          return ws.send(JSON.stringify({ type: 'auth_error', message: 'Неверный облачный пароль!' }));
+        }
+      } else {
+        const cleanName = String(data.name || '').trim();
+        if (!cleanName) return ws.send(JSON.stringify({ type: 'auth_error', message: 'Введите ваше имя!' }));
+        const cleanUname = String(data.username || '').trim().replace(/^@/, '').toLowerCase();
+        if (cleanUname && Object.values(users).some(x => x.username && x.username.toLowerCase() === cleanUname)) {
+          return ws.send(JSON.stringify({ type: 'auth_error', message: 'Этот @username уже занят!' }));
+        }
+        u = users[data.id] = {
+          id: data.id,
+          name: cleanName,
+          username: cleanUname,
+          email: '',
+          password: String(data.password || '').trim(),
+          status: '⚡',
+          avatar: ''
+        };
+        saveUsers();
       }
+      myId = data.id;
+      clients.set(myId, ws);
+      ws.send(JSON.stringify({ type: 'auth_success', ...u }));
+      broadcastUsers();
+      sendHistory(ws, myId);
+      return;
+    }
+
+    if (!myId || !users[myId]) return;
+
+    if (data.type === 'bind_gmail') {
+      const email = String(data.email || '').trim().toLowerCase();
+      if (!email || !email.includes('@')) return ws.send(JSON.stringify({ type: 'profile_error', message: 'Введите корректный Gmail!' }));
+      if (Object.values(users).some(x => x.id !== myId && x.email === email)) {
+        return ws.send(JSON.stringify({ type: 'profile_error', message: 'Этот Gmail уже привязан к другому аккаунту!' }));
+      }
+      users[myId].email = email;
+      saveUsers();
+      ws.send(JSON.stringify({ type: 'gmail_bound', email }));
+      return;
+    }
+
+    if (data.type === 'update_profile') {
+      const u = users[myId];
       if (data.username !== undefined) {
-        const cleanUname = data.username.trim().replace(/^@/, '').toLowerCase();
-        if (Object.entries(users).some(([uid, u]) => uid !== currentUserId && u.username === cleanUname)) {
+        const cleanU = String(data.username).trim().replace(/^@/, '').toLowerCase();
+        if (cleanU && Object.values(users).some(x => x.id !== myId && x.username === cleanU)) {
           return ws.send(JSON.stringify({ type: 'profile_error', message: 'Этот @username уже занят!' }));
         }
-        users[currentUserId].username = cleanUname;
+        u.username = cleanU;
       }
-      saveUsers(); broadcastUsersList();
+      if (data.name) u.name = String(data.name).trim();
+      if (data.password) u.password = String(data.password).trim();
+      if (data.status !== undefined) u.status = data.status;
+      if (data.avatar !== undefined) u.avatar = data.avatar;
+      saveUsers();
+      broadcastUsers();
+      return;
     }
 
-    if (data.type === 'message' && currentUserId) {
-      const msgObj = { ...data, fromId: currentUserId, fromName: users[currentUserId]?.name || currentUserId, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-      if (!msgObj.destruct) { savedMessages.push(msgObj); saveMessages(); }
-      routeToTarget(data.to, currentUserId, JSON.stringify(msgObj));
+    if (data.type === 'typing') {
+      const payload = JSON.stringify({ type: 'typing', fromId: myId, fromName: users[myId].name, to: data.to });
+      if (data.to === 'general') {
+        wss.clients.forEach(c => { if (c !== ws && c.readyState === WebSocket.OPEN) c.send(payload); });
+      } else {
+        const targetWs = clients.get(data.to);
+        if (targetWs && targetWs.readyState === WebSocket.OPEN) targetWs.send(payload);
+      }
+      return;
     }
 
-    if (['edit_msg', 'delete_msg', 'pin_msg', 'reaction'].includes(data.type) && currentUserId) {
-      if (data.type === 'edit_msg') {
-        const m = savedMessages.find(x => x.msgId === data.msgId);
-        if (m) { m.text = data.text; m.edited = true; saveMessages(); }
+    if (data.type === 'message') {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const msgObj = {
+        type: 'message',
+        msgId: data.msgId || Date.now().toString(),
+        fromId: myId,
+        fromName: users[myId].name,
+        to: data.to,
+        text: data.text || '',
+        voice: data.voice || null,
+        file: data.file || null,
+        reply: data.reply || null,
+        destruct: !!data.destruct,
+        time
+      };
+      if (!msgObj.destruct) {
+        history.push({ ...msgObj, text: msgObj.text ? vernamEncrypt(msgObj.text) : '' });
+        saveHistory();
       }
-      if (data.type === 'delete_msg') {
-        savedMessages = savedMessages.filter(x => x.msgId !== data.msgId); saveMessages();
+      const str = JSON.stringify(msgObj);
+      if (data.to === 'general') {
+        wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(str); });
+      } else if (data.to === myId) {
+        ws.send(str);
+      } else {
+        const targetWs = clients.get(data.to);
+        if (targetWs && targetWs.readyState === WebSocket.OPEN) targetWs.send(str);
       }
-      const payload = JSON.stringify({ ...data, fromId: currentUserId });
-      routeToTarget(data.to, currentUserId, payload);
-      if (data.to !== 'general' && data.to !== currentUserId && ws.readyState === WebSocket.OPEN) ws.send(payload);
+      return;
     }
 
-    if (['call_offer', 'call_answer', 'ice_candidate', 'call_end'].includes(data.type) && currentUserId) {
-      const target = onlineClients.get(data.to);
-      if (target && target.ws.readyState === WebSocket.OPEN) {
-        target.ws.send(JSON.stringify({ ...data, fromId: currentUserId, fromName: users[currentUserId]?.name || currentUserId }));
+    if (data.type === 'edit_msg') {
+      const m = history.find(x => x.msgId === data.msgId && x.fromId === myId);
+      if (m) { m.text = vernamEncrypt(data.text); m.edited = true; saveHistory(); }
+      routeToTarget(data.to, JSON.stringify({ type: 'edit_msg', fromId: myId, to: data.to, msgId: data.msgId, text: data.text }), ws);
+      return;
+    }
+
+    if (data.type === 'delete_msg') {
+      history = history.filter(x => !(x.msgId === data.msgId && x.fromId === myId));
+      saveHistory();
+      routeToTarget(data.to, JSON.stringify({ type: 'delete_msg', fromId: myId, to: data.to, msgId: data.msgId }), ws);
+      return;
+    }
+
+    if (data.type === 'pin_msg') {
+            routeToTarget(data.to, JSON.stringify({ type: 'pin_msg', fromId: myId, to: data.to, text: data.text }), ws);
+      return;
+    }
+
+    if (data.type === 'reaction') {
+      routeToTarget(data.to, JSON.stringify({ type: 'reaction', fromId: myId, to: data.to, msgId: data.msgId, emoji: data.emoji }), ws);
+      return;
+    }
+
+    if (['call_offer', 'call_answer', 'ice_candidate', 'call_end'].includes(data.type)) {
+      const targetWs = clients.get(data.to);
+      if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+        targetWs.send(JSON.stringify({ ...data, fromId: myId, fromName: users[myId].name }));
       }
     }
   });
 
-  ws.on('close', () => { if (currentUserId) { onlineClients.delete(currentUserId); broadcastUsersList(); } });
+  ws.on('close', () => {
+    if (myId && clients.get(myId) === ws) {
+      clients.delete(myId);
+      broadcastUsers();
+    }
+  });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log('TurboGram v7.0 (Вернам + Голосовые) запущен на порту ' + PORT));
+server.listen(PORT, () => {
+  console.log(`Сервер TurboGram запущен на порту ${PORT}`);
+});
+
