@@ -110,10 +110,23 @@
       </div>
       <p id="authSubtitle" style="color: #8b9bb4; font-size: 14px; margin-bottom: 16px;">Введите номер телефона</p>
       <div class="auth-error" id="authError"></div>
-      <div id="stepPhone">
-        <input type="text" class="auth-input" id="authPhone" placeholder="+7 (999) 000-00-00" autocomplete="off">
-        <button class="btn-primary" onclick="checkAccount()">ПРОДОЛЖИТЬ</button>
-      </div>
+         <div id="stepPhone">
+     <select class="select-input" id="countryCodeSelect">
+       <option value="+7">🇷🇺 Россия (+7)</option>
+       <option value="+7">🇰🇿 Казахстан (+7)</option>
+       <option value="+375">🇧🇾 Беларусь (+375)</option>
+       <option value="+380">🇺🇦 Украина (+380)</option>
+       <option value="+998">🇺🇿 Узбекистан (+998)</option>
+       <option value="+1">🇺🇸 США / Канада (+1)</option>
+       <option value="+49">🇩🇪 Германия (+49)</option>
+       <option value="+90">🇹🇷 Турция (+90)</option>
+     </select>
+     <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+       <input type="text" class="auth-input" id="countryPrefixDisplay" value="+7" readonly style="width: 72px; text-align: center; font-weight: bold; margin-bottom: 0; color: #6ab3f3;">
+       <input type="tel" class="auth-input" id="authPhone" placeholder="963 512 28 58" autocomplete="off" style="margin-bottom: 0; flex: 1;">
+     </div>
+     <button class="btn-primary" onclick="checkAccount()">ПРОДОЛЖИТЬ</button>
+   </div>
       <div id="stepDetails" style="display: none;">
         <input type="text" class="auth-input" id="authCode" placeholder="5-значный код из СМС" maxlength="5" autocomplete="off">
         <input type="text" class="auth-input" id="authName" placeholder="Ваше имя" style="display: none;">
