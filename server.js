@@ -39,7 +39,7 @@ const server = http.createServer((req, res) => {
   const filePath = path.join(__dirname, fileName);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(fileName);
-    const types = { '.html': 'text/html', '.js': 'application/javascript', '.png': 'image/png', '.jpg': 'image/jpeg' };
+    const types = { '.html': 'text/html', '.js': 'application/javascript', '.json': 'application/manifest+json', '.png': 'image/png', '.jpg': 'image/jpeg' };
     res.writeHead(200, { 'Content-Type': (types[ext] || 'text/plain') + '; charset=utf-8' });
     fs.createReadStream(filePath).pipe(res);
   } else { res.writeHead(404); res.end('Not found'); }
