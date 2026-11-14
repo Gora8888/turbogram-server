@@ -129,20 +129,171 @@
   </style>
 </head>
 <body>
-    <div class="context-menu" id="msgContextMenu"></div>
+      <div class="context-menu" id="msgContextMenu"></div>
+
   <div class="modal-overlay" id="peerProfileModal" style="display: none;" onclick="if(event.target===this)this.style.display='none'">
-    <!-- Модальное окно профиля собеседника, авторизации и настроек, боковая панель с папками, чаты, область сообщений и мобильная навигация -->
+    <div class="modal-box">
+      <div id="peerModalAvatar" style="width: 82px; height: 82px; border-radius: 50%; background: linear-gradient(135deg, #4facfe 0%, #0072ff 100%); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; overflow: hidden;">?</div>
+      <h3 id="peerModalName" style="margin-bottom: 4px;">Имя</h3>
+      <div id="peerModalUser" style="color: #3390ec; font-size: 14px; margin-bottom: 4px;">@username</div>
+      <div id="peerModalStatus" style="color: #8b9bb4; font-size: 13px; margin-bottom: 16px;">в сети</div>
+      <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+        <button class="btn-primary" onclick="$('peerProfileModal').style.display='none';startCall(false)">📞 Звонок</button>
+        <button class="btn-primary" onclick="$('peerProfileModal').style.display='none';startCall(true)">📹 Видео</button>
+      </div>
+      <button class="btn-primary" style="background: var(--bg-input);" onclick="$('peerProfileModal').style.display='none'">Закрыть</button>
+    </div>
   </div>
-  <div class="modal-overlay" id="authOverlay" style="background: var(--bg-main);">...</div>
-  <div class="modal-overlay" id="settingsModal" style="display: none;" onclick="if(event.target===this)this.style.display='none'">...</div>
-  <div class="folders-bar">...</div>
-  <div class="sidebar">...</div>
-  <div class="chat-area">...</div>
-  <div class="mobile-bottom-nav">...</div>
+
+  <div class="modal-overlay" id="authOverlay" style="background: var(--bg-main);">
+    <div class="modal-box">
+      <img src="/images.png" class="tg-logo-img" alt="TurboGram">
+      <h2 id="authTitle" style="margin-bottom: 10px;">TurboGram</h2>
+      <div class="mode-switch-bar">
+        <button class="mode-btn" id="btnModeDesktop" onclick="setDeviceMode('desktop')">💻 Я с ПК</button>
+        <button class="mode-btn" id="btnModeMobile" onclick="setDeviceMode('mobile')">📱 Я с телефона</button>
+      </div>
+      <p id="authSubtitle" style="color: #8b9bb4; font-size: 14px; margin-bottom: 16px;">Введите номер телефона</p>
+      <div class="auth-error" id="authError"></div>
+      <div id="stepPhone">
+        <select class="select-input" id="countryCodeSelect">
+          <option value="+7">🇷🇺 Россия (+7)</option>
+          <option value="+7">🇰🇿 Казахстан (+7)</option>
+          <option value="+375">🇧🇾 Беларусь (+375)</option>
+          <option value="+380">🇺🇦 Украина (+380)</option>
+          <option value="+998">🇺🇿 Узбекистан (+998)</option>
+          <option value="+1">🇺🇸 США / Канада (+1)</option>
+          <option value="+49">🇩🇪 Германия (+49)</option>
+          <option value="+90">🇹🇷 Турция (+90)</option>
+        </select>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <input type="text" class="auth-input" id="countryPrefixDisplay" value="+7" readonly style="width: 72px; text-align: center; font-weight: bold; margin-bottom: 0; color: #3390ec;">
+          <input type="tel" class="auth-input" id="authPhone" placeholder="963 512 28 58" autocomplete="off" style="margin-bottom: 0; flex: 1;">
+        </div>
+        <button class="btn-primary" onclick="checkAccount()">ПРОДОЛЖИТЬ</button>
+      </div>
+      <div id="stepDetails" style="display: none;">
+        <input type="text" class="auth-input" id="authCode" placeholder="5-значный код из СМС" maxlength="5" autocomplete="off">
+        <input type="text" class="auth-input" id="authName" placeholder="Ваше имя" style="display: none;">
+        <input type="text" class="auth-input" id="authUsername" placeholder="Придумайте @username" style="display: none;">
+        <input type="email" class="auth-input" id="authEmail" placeholder="Email" style="display: none;">
+        <input type="password" class="auth-input" id="authPassword" placeholder="Пароль аккаунта">
+        <button class="btn-primary" id="finalAuthBtn" onclick="completeAuth()">ПОДТВЕРДИТЬ</button>
+      </div>
+      <div class="auth-back" id="authBack" onclick="resetAuthStep()">← Изменить номер</div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="settingsModal" style="display: none;" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 12px;">⚙️ Настройки TurboGram</h3>
+      <div class="mode-switch-bar">
+        <button class="mode-btn" id="btnSetDesktop" onclick="setDeviceMode('desktop')">💻 Режим ПК</button>
+        <button class="mode-btn" id="btnSetMobile" onclick="setDeviceMode('mobile')">📱 Режим Телефона</button>
+      </div>
+      <span class="set-label">Мои аккаунты (до 3)</span>
+      <div id="accountsList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;"></div>
+      <div id="modalAvatar" style="width: 74px; height: 74px; border-radius: 50%; background: #3390ec; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold; overflow: hidden;">?</div>
+      <div id="modalPhone" style="color: #8b9bb4; font-size: 13px; margin-bottom: 10px;">+7...</div>
+      <button class="btn-primary" style="margin-bottom: 12px; background: var(--bg-msg-out);" onclick="$('avatarInput').click()">📷 Сменить фото профиля</button>
+      <span class="set-label">Ваш @username</span>
+      <input type="text" class="auth-input" id="editUsernameInput" placeholder="@username">
+      <span class="set-label">Email и новый пароль</span>
+      <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+        <input type="email" class="auth-input" id="editEmailInput" placeholder="Email" style="margin-bottom: 0;">
+        <input type="password" class="auth-input" id="editPassInput" placeholder="Новый пароль" style="margin-bottom: 0;">
+      </div>
+      <span class="set-label">Имя и Эмодзи-статус</span>
+      <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+        <input type="text" class="auth-input" id="editNameInput" placeholder="Имя" style="margin-bottom: 0;">
+        <select class="select-input" id="editStatusInput" style="width: 85px; margin-bottom: 0;">
+          <option value="⚡">⚡</option><option value="👑">👑</option><option value="🔥">🔥</option><option value="😎">😎</option><option value="🎮">🎮</option><option value="">Нет</option>
+        </select>
+      </div>
+      <span class="set-label">Тема оформления</span>
+      <select class="select-input" id="themeSelect" onchange="applyTheme(this.value)">
+        <option value="default">Классическая тёмная</option><option value="oled">Ночная чёрная (OLED)</option><option value="blue">Глубокая синяя</option>
+      </select>
+      <span class="set-label">Обои чата</span>
+      <select class="select-input" id="wallSelect" onchange="applyWallpaper(this.value)">
+        <option value="none">Без обоев</option><option value="bg1">Изумрудный узор</option><option value="bg2">Чёрный самолётик</option><option value="bg3">Светлый паттерн</option><option value="bg4">Чёрно-красный гранж</option>
+      </select>
+      <span class="set-label">Размер текста</span>
+      <select class="select-input" id="fontSizeSelect" onchange="applyFontSize(this.value)">
+        <option value="13px">Мелкий (13px)</option><option value="15px" selected>Обычный (15px)</option><option value="17px">Крупный (17px)</option>
+      </select>
+      <button class="btn-primary" style="background: #3390ec; margin-top: 6px; margin-bottom: 8px;" onclick="saveAllSettings()">💾 Сохранить все настройки</button>
+      <button class="btn-primary" style="background: #e53935;" onclick="removeSavedAccount(myId)">🚪 Выйти из аккаунта</button>
+    </div>
+  </div>
+
+  <div class="folders-bar">
+    <div class="folder-item active" id="folder-all" onclick="setFolder('all')"><span>💬</span><span>Все</span></div>
+    <div class="folder-item" id="folder-personal" onclick="setFolder('personal')"><span>👤</span><span>Личные</span></div>
+    <div class="folder-item" id="folder-groups" onclick="setFolder('groups')"><span>👥</span><span>Группы</span></div>
+    <div class="bottom-tools">
+      <div class="folder-item" onclick="openSettings()"><span>⚙️</span><span>Настройки</span></div>
+      <div class="folder-item" onclick="openSettings()">
+        <div class="my-avatar-circle" id="myAvatarBox">?</div>
+        <span id="myProfileName" style="font-weight: 400;">Профиль</span>
+      </div>
+    </div>
+    <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="uploadAvatar(event)">
+  </div>
+
+  <div class="sidebar">
+    <div class="mobile-top-bar"><span>TurboGram</span></div>
+    <div class="search-box"><input type="text" id="searchInput" placeholder="Поиск по @username..." oninput="renderChatList()"></div>
+    <div class="chat-list" id="chatList"></div>
+  </div>
+
+  <div class="chat-area">
+    <div class="chat-header">
+      <div class="header-left" onclick="openPeerProfile()">
+        <button class="mobile-back-btn" onclick="event.stopPropagation();closeMobileChat()">←</button>
+        <div class="header-avatar" id="headerAvatar">🔖</div>
+        <div style="min-width: 0;">
+          <div class="chat-header-title" id="chatTitle">Избранное</div>
+          <div class="chat-header-sub" id="chatSubtitle">облачное хранилище</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="call-btn" id="callBtn" onclick="startCall(false)">📞</button>
+        <button class="call-btn" id="videoBtn" onclick="startCall(true)">📹</button>
+      </div>
+    </div>
+    <div class="pin-bar" id="pinBar"><span id="pinText">📌 Закреплённое сообщение</span><span style="cursor: pointer;" onclick="$('pinBar').style.display='none'">✕</span></div>
+    <div class="call-bar" id="callBar">
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;"><span id="callStatus">🔒 Звонок...</span><div style="display: flex; gap: 8px;"><button class="hangup-btn" style="background: #3390ec;" onclick="shareScreen()">🖥️ Экран</button><button class="hangup-btn" onclick="endCall(true)">Завершить</button></div></div>
+            <div class="video-grid"><video id="localVideo" autoplay muted></video><video id="remoteVideo" autoplay></video></div>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="emoji-picker" id="emojiPicker"></div>
+    <div class="reply-preview-bar" id="replyBar"><span id="replyPreviewText">Ответ...</span><span style="cursor: pointer;" onclick="cancelReply()">✕</span></div>
+    <div class="input-area">
+      <div class="input-capsule">
+        <button class="icon-btn" onclick="toggleEmojiPicker()">😊</button>
+        <input type="text" id="msgInput" placeholder="Сообщение" autocomplete="off">
+        <button class="icon-btn" onclick="$('fileInput').click()">📎</button>
+        <input type="file" id="fileInput" style="display: none;" onchange="sendFile(event)">
+      </div>
+      <button class="main-action-btn" id="mainActionBtn" onclick="handleMainAction()">🎤</button>
+    </div>
+  </div>
+
+  <div class="mobile-bottom-nav">
+    <div class="m-nav-item active" id="m-nav-all" onclick="setMobileTab('all')"><span>💬</span><span>Чаты</span></div>
+    <div class="m-nav-item" id="m-nav-personal" onclick="setMobileTab('personal')"><span>👤</span><span>Личные</span></div>
+    <div class="m-nav-item" id="m-nav-groups" onclick="setMobileTab('groups')"><span>👥</span><span>Группы</span></div>
+    <div class="m-nav-item" onclick="openSettings()"><span>⚙️</span><span>Настройки</span></div>
+  </div>
+
   <audio id="remoteAudio" autoplay></audio>
   <script src="/client.js?v=20"></script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
+
+
 
 
