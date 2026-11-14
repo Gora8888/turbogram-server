@@ -6,6 +6,7 @@ let mediaRec = null, audioChunks = [], isRecording = false, typingTimer = null;
 const hist = { saved: [], general: [] };
 const unreadCounts = {};
 const typingUsers = {};
+let customFolders = JSON.parse(localStorage.getItem('tg_custom_folders') || '[]');
 
 let savedAccounts = JSON.parse(localStorage.getItem('tg_accounts') || '[]');
 let activeAccountId = localStorage.getItem('tg_active_id') || '';
@@ -280,10 +281,67 @@ ws.onmessage = async ev => {
   if (d.type === 'ice_candidate' && pc) await pc.addIceCandidate(new RTCIceCandidate(d.candidate));
   if (d.type === 'call_end') endCall(false);
 };
+function openCreateFolderModal() {
+  $('newFolderName').value = '';
+  const box = $('folderChatsCheckboxes');
+  box.innerHTML = '';
+  const allTargets = [
+    { id: 'saved', name: '🔖 Избранное' },
+    { id: 'general', name: '👥 Общий чат друзей' },
+    ...users.filter(u => u.id !== myId).map(u => ({ id: u.id, name: `👤 ${u.name}` }))
+  ];
+  allTargets.forEach(t => {
+    box.innerHTML += `<label class="folder-chat-pick"><span>${t.name}</span><input type="checkbox" value="${t.id}" style="width:18px;height:18px"></label>`;
+  });
+  $('createFolderModal').style.display = 'flex';
+}
+
+function saveCustomFolder() {
+  const name = $('newFolderName').value.trim();
+  if (!name) return alert('Введите название папки');
+  const icon = $('newFolderIcon').value;
+  const chatIds = Array.from(document.querySelectorAll('#folderChatsCheckboxes input:checked')).map(cb => cb.value);
+  if (!chatIds.length) return alert('Выберите хотя бы один чат');
+  customFolders.push({ id: 'f_' + Date.now(), name, icon, chatIds });
+  localStorage.setItem('tg_custom_folders', JSON.stringify(customFolders));
+  $('createFolderModal').style.display = 'none';
+  renderFoldersUI();
+  renderChatList();
+}
+
+function deleteCustomFolder(fId) {
+  if (!confirm('Удалить эту папку?')) return;
+  customFolders = customFolders.filter(f => f.id !== fId);
+  localStorage.setItem('tg_custom_folders', JSON.stringify(customFolders));
+  setFolder('all');
+}
+
+function renderFoldersUI() {
+  const dBox = $('desktopFoldersList');
+  const mBox = $('mobileFoldersPills');
+  if (dBox) {
+    dBox.innerHTML = `<div class="folder-item ${folder === 'all' ? 'active' : ''}" onclick="setFolder('all')"><span>💬</span><span>Все</span></div>`;
+    customFolders.forEach(f => {
+      dBox.innerHTML += `<div class="folder-item ${folder === f.id ? 'active' : ''}" onclick="setFolder('${f.id}')" oncontextmenu="event.preventDefault();deleteCustomFolder('${f.id}')"><span>${f.icon}</span><span>${f.name.slice(0, 8)}</span></div>`;
+    });
+  }
+  if (mBox) {
+    mBox.innerHTML = `<div class="ios-pill-tab ${folder === 'all' ? 'active' : ''}" onclick="setFolder('all')">Все</div>`;
+    customFolders.forEach(f => {
+      const cnt = f.chatIds.reduce((sum, cid) => sum + (unreadCounts[cid] || 0), 0);
+      const badge = cnt > 0 ? `<span class="ios-pill-badge">${cnt}</span>` : '';
+      mBox.innerHTML += `<div class="ios-pill-tab ${folder === f.id ? 'active' : ''}" onclick="setFolder('${f.id}')">${f.name} ${f.icon} ${badge}</div>`;
+    });
+    mBox.innerHTML += `<div class="ios-pill-tab" onclick="openCreateFolderModal()" style="color:#3390ec">+ Папка</div>`;
+    if (folder !== 'all') {
+      mBox.innerHTML += `<div class="ios-pill-tab" onclick="deleteCustomFolder('${folder}')" style="color:#ff595a">✕</div>`;
+    }
+  }
+}
+
 function setFolder(f) {
   folder = f;
-  document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('active'));
-  if ($('folder-' + f)) $('folder-' + f).classList.add('active');
+  renderFoldersUI();
   renderChatList();
 }
 
@@ -291,24 +349,27 @@ function renderChatList() {
   const list = $('chatList');
   const cleanQ = $('searchInput').value.trim().toLowerCase().replace(/^@/, '');
   list.innerHTML = '';
+    renderFoldersUI();
+  const activeF = customFolders.find(f => f.id === folder);
+  const allowed = cid => !activeF || activeF.chatIds.includes(cid);
 
   const makeBadge = k => unreadCounts[k] ? `<span class="unread-badge">${unreadCounts[k]}</span>` : '';
 
-  if (folder === 'all' && !cleanQ) {
+  if (allowed('saved') && !cleanQ) {
     const last = (hist.saved || []).at(-1);
     const prev = last ? (last.voice ? '🎤 Голосовое сообщение' : (last.file ? '📎 Медиафайл' : last.text)) : 'Сохраняйте заметки и файлы';
     list.innerHTML += `<div class="chat-item ${chat === 'saved' ? 'active' : ''}" onclick="selectChat('saved','Избранное')"><div class="avatar" style="background:#3390ec">🔖</div><div class="chat-info"><div class="chat-top"><span class="chat-name">Избранное</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge('saved')}</div></div></div>`;
   }
 
-  if ((folder === 'all' || folder === 'groups') && (!cleanQ || 'общий чат друзей'.includes(cleanQ))) {
+  if (allowed('general') && (!cleanQ || 'общий чат друзей'.includes(cleanQ))) {
     const last = (hist.general || []).at(-1);
     const prev = typingUsers.general ? `<span style="color:#3390ec">печатает...</span>` : (last ? `${last.fromName}: ${last.voice ? '🎤 Голосовое' : (last.file ? '📎 Файл' : last.text)}` : 'Нет сообщений');
     list.innerHTML += `<div class="chat-item ${chat === 'general' ? 'active' : ''}" onclick="selectChat('general','Общий чат друзей')"><div class="avatar">TG</div><div class="chat-info"><div class="chat-top"><span class="chat-name">Общий чат друзей</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge('general')}</div></div></div>`;
   }
 
-  if (folder === 'all' || folder === 'personal') {
     users.forEach(u => {
       if (u.id === myId) return;
+      if (!allowed(u.id)) return;
       const hasHistory = (hist[u.id] && hist[u.id].length > 0) || chat === u.id;
       const matchesSearch = cleanQ.length >= 2 && ((u.username && u.username.toLowerCase().includes(cleanQ)) || u.name.toLowerCase().includes(cleanQ));
       if (!hasHistory && !matchesSearch) return;
