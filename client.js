@@ -1,4 +1,4 @@
-const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+let ws = null;
 const $ = id => document.getElementById(id);
 let enteredId = '', myId = '', myName = '', myEmail = '', myUname = '', myStatus = '⚡';
 let chat = 'saved', folder = 'all', users = [], pc = null, stream = null, partner = null, replyTo = null;
@@ -12,13 +12,26 @@ let activeAccountId = localStorage.getItem('tg_active_id') || '';
 let customFolders = JSON.parse(localStorage.getItem('tg_custom_folders') || '[]');
 
 function sendAutoLogin() {
-  if (!activeAccountId || ws.readyState !== 1) return;
+  if (!activeAccountId || !ws || ws.readyState !== 1) return;
   const savedProfile = savedAccounts.find(a => a.id === activeAccountId) || null;
   ws.send(JSON.stringify({ type: 'auto_login', id: activeAccountId, savedProfile }));
 }
 
-ws.onopen = () => sendAutoLogin();
+function connectWS() {
+  if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+  ws.onopen = () => sendAutoLogin();
+  ws.onclose = () => setTimeout(connectWS, 1500);
+  ws.onmessage = handleWsMessage;
+}
+
 document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    if (!ws || ws.readyState !== 1) connectWS();
+    else if (!myId && activeAccountId) sendAutoLogin();
+  }
+});
+
   if (document.visibilityState === 'visible' && ws.readyState === 1 && !myId && activeAccountId) sendAutoLogin();
 });
 
@@ -238,7 +251,7 @@ function uploadAvatar(e) {
   r.readAsDataURL(f);
   e.target.value = '';
 }
-ws.onmessage = async ev => {
+async function handleWsMessage(ev) {
   const d = JSON.parse(ev.data);
   if (d.type === 'auth_error') $('authError').textContent = d.message;
   if (d.type === 'profile_error') alert(d.message);
@@ -627,6 +640,8 @@ function endCall(notify) {
   $('remoteVideo').style.display = 'none';
   partner = null;
 }
+connectWS();
+
 
     
 
