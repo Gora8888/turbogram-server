@@ -441,6 +441,3 @@ function endCall(notify) {
   $('remoteVideo').style.display = 'none';
   partner = null;
 }
-
-
-
