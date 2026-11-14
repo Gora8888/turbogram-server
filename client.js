@@ -32,9 +32,6 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-  if (document.visibilityState === 'visible' && ws.readyState === 1 && !myId && activeAccountId) sendAutoLogin();
-});
-
 function setDeviceMode(mode) {
   localStorage.setItem('tg_device_mode', mode);
   const isMob = mode === 'mobile';
@@ -58,7 +55,6 @@ function setMobileTab(tab) {
   if ($('m-nav-' + tab)) $('m-nav-' + tab).classList.add('active');
   closeMobileChat();
 }
-
 const pkr = $('emojiPicker');
 ['😀','😂','🥰','😎','🤔','😭','👍','❤️','🔥','🎉','👏','🙏','💯','✨','⚡','✈️'].forEach(em => {
   const s = document.createElement('span');
@@ -107,7 +103,7 @@ function checkAccount() {
   const code = $('countryCodeSelect') ? $('countryCodeSelect').value : '+7';
   const rawDigits = $('authPhone').value.replace(/\D/g, '');
   if (rawDigits.length < 6) return ($('authError').textContent = 'Введите корректный номер телефона');
-  if (ws.readyState !== 1) return ($('authError').textContent = 'Связь с сервером... Нажмите ещё раз через секунду.');
+  if (!ws || ws.readyState !== 1) return ($('authError').textContent = 'Связь с сервером... Нажмите ещё раз через секунду.');
   enteredId = code + rawDigits;
   $('authError').textContent = '';
   ws.send(JSON.stringify({ type: 'check_phone', id: enteredId }));
@@ -142,12 +138,12 @@ function resetAuthStep() {
   $('authSubtitle').textContent = 'Проверьте код страны и введите свой номер телефона.';
   $('authError').textContent = '';
 }
-
 function bindGmailAccount() {
   const email = $('bindGmailInput').value.trim();
   if (!email || !email.includes('@')) return alert('Введите корректный адрес Gmail!');
   ws.send(JSON.stringify({ type: 'bind_gmail', email }));
 }
+
 function updateSendBtnState() {
   const btn = $('mainActionBtn');
   if (!btn || isRecording) return;
@@ -180,9 +176,7 @@ function openSettings() {
   $('modalPhone').textContent = `${myId} ${myUname ? '(@' + myUname + ')' : ''}`;
   $('modalAvatar').innerHTML = $('myAvatarBox').innerHTML;
   if ($('gmailCurrentStatus')) {
-    $('gmailCurrentStatus').innerHTML = myEmail
-      ? `✅ Привязана почта: <b style="color:#fff">${myEmail}</b>`
-      : 'Почта Gmail не привязана';
+    $('gmailCurrentStatus').innerHTML = myEmail ? `✅ Привязана почта: <b style="color:#fff">${myEmail}</b>` : 'Почта Gmail не привязана';
     if ($('bindGmailInput')) $('bindGmailInput').value = myEmail;
   }
   renderAccountsList();
@@ -342,7 +336,7 @@ async function handleWsMessage(ev) {
   if (d.type === 'call_answer' && pc) await pc.setRemoteDescription(new RTCSessionDescription(d.answer));
   if (d.type === 'ice_candidate' && pc) await pc.addIceCandidate(new RTCIceCandidate(d.candidate));
   if (d.type === 'call_end') endCall(false);
-};
+}
 
 function openCreateFolderModal() {
   $('newFolderName').value = '';
@@ -399,7 +393,6 @@ function renderFoldersUI() {
 }
 
 function setFolder(f) { folder = f; renderFoldersUI(); renderChatList(); }
-
 function renderChatList() {
   renderFoldersUI();
   const list = $('chatList'), cleanQ = $('searchInput').value.trim().toLowerCase().replace(/^@/, '');
@@ -427,7 +420,7 @@ function renderChatList() {
     if (!hasHistory && !matchesSearch) return;
     const last = (hist[u.id] || []).at(-1);
     const tag = u.username ? `@${u.username}` : '';
-        const prev = typingUsers[u.id] ? `<span style="color:#3390ec">печатает...</span>` : (last ? (last.voice ? '🎤 Голосовое' : (last.file ? '📎 Файл' : last.text)) : (tag ? `${tag} • ${u.online ? 'в сети' : 'не в сети'}` : 'Нажмите, чтобы написать'));
+    const prev = typingUsers[u.id] ? `<span style="color:#3390ec">печатает...</span>` : (last ? (last.voice ? '🎤 Голосовое' : (last.file ? '📎 Файл' : last.text)) : (tag ? `${tag} • ${u.online ? 'в сети' : 'не в сети'}` : 'Нажмите, чтобы написать'));
     const ava = u.avatar ? `<img src="${u.avatar}">` : u.name.slice(0, 1).toUpperCase();
     list.innerHTML += `<div class="chat-item ${chat === u.id ? 'active' : ''}" onclick="selectChat('${u.id}','${u.name}')"><div class="avatar">${ava}${u.online ? '<div class="online-dot"></div>' : ''}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">${u.name} ${u.status || ''}</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge(u.id)}</div></div></div>`;
   });
@@ -531,7 +524,7 @@ function sendFile(e) {
 
 $('msgInput').addEventListener('input', () => {
   updateSendBtnState();
-  if (chat !== 'saved' && ws.readyState === 1 && !typingTimer) {
+  if (chat !== 'saved' && ws && ws.readyState === 1 && !typingTimer) {
     ws.send(JSON.stringify({ type: 'typing', to: chat }));
     typingTimer = setTimeout(() => { typingTimer = null; }, 2000);
   }
@@ -542,7 +535,7 @@ async function toggleVoiceRecord() {
   const btn = $('mainActionBtn');
   if (!isRecording) {
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const s = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '');
       mediaRec = mimeType ? new MediaRecorder(s, { mimeType }) : new MediaRecorder(s);
       audioChunks = [];
@@ -577,47 +570,29 @@ async function setupPC(id, withVideo) {
   if (withVideo && stream.getVideoTracks().length) { $('localVideo').srcObject = stream; $('localVideo').style.display = 'block'; }
   pc.ontrack = e => {
     const remStream = e.streams.at(0) || new MediaStream([e.track]);
-        $('remoteAudio').srcObject = remStream;
-    $('remoteAudio').play().catch(() => {});
-    if (remStream.getVideoTracks().length) {
-      $('remoteVideo').srcObject = remStream;
-      $('remoteVideo').style.display = 'block';
-    }
+    $('remoteAudio').srcObject = remStream; $('remoteAudio').play().catch(() => {});
+    if (remStream.getVideoTracks().length) { $('remoteVideo').srcObject = remStream; $('remoteVideo').style.display = 'block'; }
   };
-  pc.onicecandidate = e => {
-    if (e.candidate) ws.send(JSON.stringify({ type: 'ice_candidate', to: id, candidate: e.candidate }));
-  };
+  pc.onicecandidate = e => { if (e.candidate) ws.send(JSON.stringify({ type: 'ice_candidate', to: id, candidate: e.candidate })); };
 }
 
 async function startCall(withVideo) {
   if (chat === 'general' || chat === 'saved') return;
   try {
-    $('callBar').style.display = 'flex';
-    $('callStatus').textContent = withVideo ? '📹 Видеозвонок...' : '📞 Звонок...';
-    await setupPC(chat, withVideo);
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
+    $('callBar').style.display = 'flex'; $('callStatus').textContent = withVideo ? '📹 Видеозвонок...' : '📞 Звонок...';
+    await setupPC(chat, withVideo); const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
     ws.send(JSON.stringify({ type: 'call_offer', to: chat, offer, withVideo }));
-  } catch (err) {
-    alert('Ошибка звонка: ' + err.message);
-    endCall(false);
-  }
+  } catch (err) { alert('Ошибка звонка: ' + err.message); endCall(false); }
 }
 
 async function handleOffer(d) {
   if (!confirm(`Входящий звонок от ${d.fromName}. Ответить?`)) return ws.send(JSON.stringify({ type: 'call_end', to: d.fromId }));
   try {
-    $('callBar').style.display = 'flex';
-    $('callStatus').textContent = `🔒 Связь с ${d.fromName}`;
-    await setupPC(d.fromId, d.withVideo);
-    await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
+    $('callBar').style.display = 'flex'; $('callStatus').textContent = `🔒 Связь с ${d.fromName}`;
+    await setupPC(d.fromId, d.withVideo); await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
+    const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
     ws.send(JSON.stringify({ type: 'call_answer', to: d.fromId, answer }));
-  } catch (err) {
-    alert('Ошибка ответа: ' + err.message);
-    endCall(true);
-  }
+  } catch (err) { alert('Ошибка ответа: ' + err.message); endCall(true); }
 }
 
 async function shareScreen() {
@@ -625,26 +600,22 @@ async function shareScreen() {
   const scr = await navigator.mediaDevices.getDisplayMedia({ video: true });
   const track = scr.getVideoTracks().at(0);
   const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-  if (sender) sender.replaceTrack(track);
-  else pc.addTrack(track, scr);
-  $('localVideo').srcObject = scr;
-  $('localVideo').style.display = 'block';
+  if (sender) sender.replaceTrack(track); else pc.addTrack(track, scr);
+  $('localVideo').srcObject = scr; $('localVideo').style.display = 'block';
 }
 
 function endCall(notify) {
   if (notify && partner) ws.send(JSON.stringify({ type: 'call_end', to: partner }));
   if (pc) { pc.close(); pc = null; }
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  $('callBar').style.display = 'none';
-  $('localVideo').style.display = 'none';
-  $('remoteVideo').style.display = 'none';
+  $('callBar').style.display = 'none'; $('localVideo').style.display = 'none'; $('remoteVideo').style.display = 'none';
   partner = null;
 }
+
 connectWS();
 
 
 
-    
 
 
 
