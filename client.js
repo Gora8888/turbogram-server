@@ -59,7 +59,27 @@ function loadSavedUiSettings() {
   if (saved.fontSz) { applyFontSize(saved.fontSz); if ($('fontSizeSelect')) $('fontSizeSelect').value = saved.fontSz; }
 }
 loadSavedUiSettings();
+if ($('countryCodeSelect')) {
+  $('countryCodeSelect').addEventListener('change', e => {
+    $('countryPrefixDisplay').value = e.target.value;
+    $('authPhone').focus();
+  });
+}
 
+if ($('authPhone')) {
+  $('authPhone').addEventListener('input', e => {
+    let digits = e.target.value.replace(/\D/g, '');
+    const code = $('countryCodeSelect') ? $('countryCodeSelect').value : '+7';
+    if (code === '+7' && digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) digits = digits.slice(1);
+    digits = digits.slice(0, 10);
+    let formatted = '';
+    if (digits.length > 0) formatted += digits.slice(0, 3);
+    if (digits.length > 3) formatted += ' ' + digits.slice(3, 6);
+    if (digits.length > 6) formatted += ' ' + digits.slice(6, 8);
+    if (digits.length > 8) formatted += ' ' + digits.slice(8, 10);
+    e.target.value = formatted;
+  });
+}
 function openSettings() {
   $('editNameInput').value = myName;
   if ($('editUsernameInput')) $('editUsernameInput').value = myUname ? '@' + myUname : '';
@@ -113,12 +133,14 @@ function removeSavedAccount(id) {
 }
 
 function checkAccount() {
-  const id = $('authPhone').value.trim();
-  if (!id) return ($('authError').textContent = 'Введите номер телефона');
+  const code = $('countryCodeSelect') ? $('countryCodeSelect').value : '+7';
+  const rawDigits = $('authPhone').value.replace(/\D/g, '');
+  if (rawDigits.length < 6) return ($('authError').textContent = 'Введите корректный номер телефона');
   if (ws.readyState !== 1) return ($('authError').textContent = 'Нет связи с сервером!');
-  enteredId = id;
-  ws.send(JSON.stringify({ type: 'request_code', id }));
+  enteredId = code + rawDigits;
+  ws.send(JSON.stringify({ type: 'request_code', id: enteredId }));
 }
+
 function resetAuthStep() {
   $('stepPhone').style.display = 'block'; $('stepDetails').style.display = 'none'; $('authBack').style.display = 'none';
   $('authTitle').textContent = 'TurboGram'; $('authError').textContent = '';
@@ -158,7 +180,7 @@ ws.onmessage = async ev => {
   const d = JSON.parse(ev.data);
   if (d.type === 'auth_error') $('authError').textContent = d.message;
   if (d.type === 'profile_error') alert(d.message);
-  if (d.type === 'auto_login_failed') removeSavedAccount(d.id);
+  if (d.type === 'auto_login_failed') { activeAccountId = ''; localStorage.removeItem('tg_active_id'); }
   if (d.type === 'code_sent') {
     isNew = !d.exists; $('authError').textContent = '';
     $('stepPhone').style.display = 'none'; $('stepDetails').style.display = 'block'; $('authBack').style.display = 'block';
