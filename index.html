@@ -174,14 +174,52 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="authOverlay" style="background: var(--bg-main);">
-    <div class="modal-box">
+    <div class="modal-overlay" id="authOverlay" style="background: var(--bg-main);">
+    <div class="modal-box" style="max-width: 360px;">
       <img src="/images.png" class="tg-logo-img" alt="TurboGram">
-      <h2 id="authTitle" style="margin-bottom: 10px;">TurboGram</h2>
-      <div class="mode-switch-bar">
-        <button class="mode-btn" id="btnModeDesktop" onclick="setDeviceMode('desktop')">💻 Я с ПК</button>
-        <button class="mode-btn" id="btnModeMobile" onclick="setDeviceMode('mobile')">📱 Я с телефона</button>
+      <h2 id="authTitle" style="margin-bottom: 6px;">Ваш телефон</h2>
+      <div class="mode-switch-bar" style="margin-bottom: 12px;">
+        <button type="button" class="mode-btn" id="btnModeDesktop" onclick="setDeviceMode('desktop')">💻 Я с ПК</button>
+        <button type="button" class="mode-btn" id="btnModeMobile" onclick="setDeviceMode('mobile')">📱 Я с телефона</button>
       </div>
+      <p id="authSubtitle" style="color: #8b9bb4; font-size: 13.5px; margin-bottom: 16px; line-height: 1.4;">Проверьте код страны и введите свой номер телефона.</p>
+      <div class="auth-error" id="authError"></div>
+
+      <div id="stepPhone">
+        <select class="select-input" id="countryCodeSelect">
+          <option value="+7">🇷🇺 Россия (+7)</option>
+          <option value="+7">🇰🇿 Казахстан (+7)</option>
+          <option value="+375">🇧🇾 Беларусь (+375)</option>
+          <option value="+380">🇺🇦 Украина (+380)</option>
+          <option value="+998">🇺🇿 Узбекистан (+998)</option>
+          <option value="+1">🇺🇸 США / Канада (+1)</option>
+          <option value="+49">🇩🇪 Германия (+49)</option>
+          <option value="+90">🇹🇷 Турция (+90)</option>
+        </select>
+        <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+          <input type="text" class="auth-input" id="countryPrefixDisplay" value="+7" readonly style="width: 72px; text-align: center; font-weight: bold; margin-bottom: 0; color: #3390ec;">
+          <input type="tel" class="auth-input" id="authPhone" placeholder="963 512 28 58" autocomplete="off" style="margin-bottom: 0; flex: 1; font-size: 16px;">
+        </div>
+        <button type="button" class="btn-primary" onclick="checkAccount()">ПРОДОЛЖИТЬ</button>
+      </div>
+
+      <div id="stepLoginPass" style="display: none;">
+        <input type="password" class="auth-input" id="loginPasswordInput" placeholder="Введите облачный пароль">
+        <button type="button" class="btn-primary" onclick="submitLoginPassword()">ВОЙТИ В АККАУНТ</button>
+      </div>
+
+      <div id="stepRegister" style="display: none;">
+        <input type="text" class="auth-input" id="authFirstName" placeholder="Имя (обязательно)">
+        <input type="text" class="auth-input" id="authLastName" placeholder="Фамилия (необязательно)">
+        <input type="text" class="auth-input" id="authUsername" placeholder="Придумайте @username">
+        <input type="password" class="auth-input" id="authPassword" placeholder="Облачный пароль (по желанию)">
+        <button type="button" class="btn-primary" onclick="completeRegistration()">НАЧАТЬ ОБЩЕНИЕ</button>
+      </div>
+
+      <div class="auth-back" id="authBack" onclick="resetAuthStep()">← Изменить номер</div>
+    </div>
+  </div>
+
       <p id="authSubtitle" style="color: #8b9bb4; font-size: 14px; margin-bottom: 16px;">Введите номер телефона</p>
       <div class="auth-error" id="authError"></div>
       <div id="stepPhone">
@@ -227,11 +265,16 @@
       <button class="btn-primary" style="margin-bottom: 12px; background: var(--bg-msg-out);" onclick="$('avatarInput').click()">📷 Сменить фото профиля</button>
       <span class="set-label">Ваш @username</span>
       <input type="text" class="auth-input" id="editUsernameInput" placeholder="@username">
-      <span class="set-label">Email и новый пароль</span>
-      <div style="display: flex; gap: 6px; margin-bottom: 10px;">
-        <input type="email" class="auth-input" id="editEmailInput" placeholder="Email" style="margin-bottom: 0;">
-        <input type="password" class="auth-input" id="editPassInput" placeholder="Новый пароль" style="margin-bottom: 0;">
+          <span class="set-label">Привязка Gmail к аккаунту</span>
+    <div style="background: var(--bg-input); padding: 10px; border-radius: 12px; margin-bottom: 10px; text-align: left;">
+      <div id="gmailCurrentStatus" style="font-size: 13px; color: #8b9bb4; margin-bottom: 8px;">Почта не привязана</div>
+      <div style="display: flex; gap: 6px;">
+        <input type="email" class="auth-input" id="bindGmailInput" placeholder="example@gmail.com" style="margin-bottom: 0; flex: 1; background: var(--bg-side);">
+        <button type="button" class="btn-primary" style="width: auto; padding: 0 14px; font-size: 13px;" onclick="bindGmailAccount()">Привязать</button>
       </div>
+    </div>
+    <span class="set-label">Новый облачный пароль (по желанию)</span>
+    <input type="password" class="auth-input" id="editPassInput" placeholder="Оставьте пустым, чтобы не менять">
       <span class="set-label">Имя и Эмодзи-статус</span>
       <div style="display: flex; gap: 6px; margin-bottom: 10px;">
         <input type="text" class="auth-input" id="editNameInput" placeholder="Имя" style="margin-bottom: 0;">
@@ -318,7 +361,7 @@
   </div>
 
   <audio id="remoteAudio" autoplay></audio>
-  <script src="/client.js?v=20"></script>
+  <script src="/client.js?v=26"></script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
