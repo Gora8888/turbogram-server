@@ -367,7 +367,7 @@ async function toggleVoiceRecord() {
 
 async function setupPC(id, withVideo) {
   partner = id;
-  pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:://google.com' }] });
+    pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:://google.com' }] });
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withVideo }); }
   catch (e) { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
     stream.getTracks().forEach(t => pc.addTrack(t, stream));
