@@ -75,6 +75,10 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (raw) => {
     const data = JSON.parse(raw.toString());
+        if (d.id) {
+      const digits = String(d.id).replace(/\D/g, '');
+      d.id = (digits.length === 11 && digits.startsWith('8')) ? '+7' + digits.slice(1) : '+' + digits;
+    }
 
     if (data.type === 'request_code') {
       const id = data.id.trim();
