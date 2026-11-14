@@ -363,6 +363,7 @@
   <audio id="remoteAudio" autoplay></audio>
   <script src="/client.js?v=26"></script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+  <script>if (localStorage.getItem('tg_active_id')) document.getElementById('authOverlay').style.display = 'none';</script>
 </body>
 </html>
 
