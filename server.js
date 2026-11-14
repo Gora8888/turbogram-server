@@ -8,6 +8,12 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = fs.existsSync('/data') ? '/data' : __dirname;
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
+const STORIES_FILE = path.join(DATA_DIR, 'stories.json');
+const ROOMS_FILE = path.join(DATA_DIR, 'rooms.json');
+let stories = fs.existsSync(STORIES_FILE) ? JSON.parse(fs.readFileSync(STORIES_FILE, 'utf8')) : [];
+let rooms = fs.existsSync(ROOMS_FILE) ? JSON.parse(fs.readFileSync(ROOMS_FILE, 'utf8')) : {};
+const saveStories = () => fs.writeFileSync(STORIES_FILE, JSON.stringify(stories, null, 2));
+const saveRooms = () => fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2));
 
 let users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')) : {};
 let history = fs.existsSync(HISTORY_FILE) ? JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')) : [];
@@ -89,6 +95,9 @@ function broadcastUsers() {
 }
 
 function sendHistory(ws, userId) {
+  const activeStories = stories.filter(s => Date.now() - s.createdAt < 24 * 3600 * 1000);
+ws.send(JSON.stringify({ type: 'stories_list', stories: activeStories }));
+ws.send(JSON.stringify({ type: 'rooms_list', rooms: Object.values(rooms) }));
   const userMsgs = history
     .filter(m => m.to === 'general' || m.to === userId || m.fromId === userId)
     .map(m => ({ ...m, text: m.text ? vernamDecrypt(m.text) : '' }));
@@ -217,6 +226,37 @@ wss.on('connection', ws => {
       }
       return;
     }
+    if (data.type === 'post_story') {
+  const st = {
+    id: 'st_' + Date.now(),
+    authorId: myId,
+    authorName: users[myId].name,
+    authorAvatar: users[myId].avatar || '',
+    image: data.image || '',
+    caption: String(data.caption || '').trim(),
+    createdAt: Date.now()
+  };
+  stories.push(st);
+  saveStories();
+  const payload = JSON.stringify({ type: 'new_story', story: st });
+  wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(payload); });
+  return;
+}
+
+if (data.type === 'create_room') {
+  const roomId = (data.kind === 'channel' ? 'ch_' : 'gr_') + Date.now();
+  rooms[roomId] = {
+    id: roomId,
+    kind: data.kind || 'group',
+    title: String(data.title || 'Новая группа').trim(),
+    ownerId: myId
+  };
+  saveRooms();
+  const payload = JSON.stringify({ type: 'rooms_list', rooms: Object.values(rooms) });
+  wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(payload); });
+  return;
+}
+
 
     if (data.type === 'message') {
       const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
