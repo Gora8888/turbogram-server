@@ -461,7 +461,9 @@
       if (ao) ao.style.setProperty('display', 'none', 'important');
     }
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
-  </script>
+  window.addEventListener('scroll', () => window.scrollTo(0, 0));
+  document.addEventListener('focusout', () => setTimeout(() => window.scrollTo(0, 0), 50));
+</script>
 </body>
 </html>
 
