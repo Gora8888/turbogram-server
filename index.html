@@ -187,6 +187,26 @@
     body.is-mobile.mobile-chat-open .mobile-bottom-nav { display: none !important; }
     .m-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #8e8e93; font-size: 11px; font-weight: 500; cursor: pointer; padding: 5px 16px; border-radius: 22px; }
     .m-nav-item.active { background: rgba(255, 255, 255, 0.12); color: #3390ec; }
+        /* Полноэкранные подстраницы Настроек iOS Telegram (1-в-1 как на референсах) */
+    .ios-subpage { position: fixed; inset: 0; background: #000000; z-index: 60; display: none; flex-direction: column; overflow-y: auto; padding: calc(max(50px, env(safe-area-inset-top)) + 54px) 16px 90px; }
+    .ios-subpage.open { display: flex; }
+    .ios-subpage-inner { width: 100%; max-width: 480px; margin: 0 auto; }
+    .ios-sub-header { position: fixed; top: max(50px, env(safe-area-inset-top)); left: 0; right: 0; height: 44px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; z-index: 65; pointer-events: none; }
+    .ios-sub-header > * { pointer-events: auto; }
+    .ios-sub-title { position: absolute; left: 50%; transform: translateX(-50%); font-size: 17px; font-weight: 700; color: #fff; }
+    .ios-sec-caption { font-size: 12.5px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.4px; margin: 14px 0 6px 14px; text-align: left; }
+    .ios-sec-foot { font-size: 12.5px; color: #8e8e93; line-height: 1.38; margin: -10px 14px 18px; text-align: left; }
+    .ios-toggle { position: relative; width: 50px; height: 30px; flex-shrink: 0; }
+    .ios-toggle input { opacity: 0; width: 0; height: 0; }
+    .ios-slider { position: absolute; cursor: pointer; inset: 0; background: #39393d; border-radius: 30px; transition: .25s; }
+    .ios-slider::before { position: absolute; content: ""; height: 26px; width: 26px; left: 2px; bottom: 2px; background: #fff; border-radius: 50%; transition: .25s; box-shadow: 0 2px 5px rgba(0,0,0,0.35); }
+    .ios-toggle input:checked + .ios-slider { background: #34c759; }
+    .ios-toggle input:checked + .ios-slider::before { transform: translateX(20px); }
+    .ios-blue-cta { width: 100%; padding: 14px; border-radius: 16px; border: none; background: #4ea4f6; color: #fff; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin-bottom: 20px; }
+    .ios-theme-preview-box { background: #141c24; padding: 14px; border-radius: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; border: 1px solid rgba(255,255,255,0.06); }
+    .ios-theme-cards { display: flex; gap: 10px; padding: 10px 14px 14px; }
+    .ios-tcard { flex: 1; height: 96px; border-radius: 14px; border: 2px solid transparent; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; background: #121820; }
+    .ios-tcard.active { border-color: #4ea4f6; }
   </style>
 </head>
 <body>
@@ -316,7 +336,7 @@
           <button type="button" class="ios-icon-circle" onclick="$('settingsModal').style.display='none';$('searchInput').focus()">
             <svg class="svg-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
-          <button type="button" class="ios-pill-btn" onclick="toggleSetSub('subProfile')">Изм.</button>
+          <button type="button" class="ios-pill-btn" onclick="openIosPage('pageProfile')">Изм.</button>
           <button type="button" class="ios-pill-btn" style="background: rgba(51, 144, 236, 0.22); color: #4ea4f6;" onclick="$('settingsModal').style.display='none'">Готово</button>
         </div>
       </div>
@@ -331,26 +351,10 @@
       </button>
 
       <div class="ios-list-group">
-        <div class="ios-list-row" onclick="toggleSetSub('subProfile')">
+        <div class="ios-list-row" onclick="openIosPage('pageProfile')">
           <div class="ios-sq-icon" style="background: #ff5e3a;"><svg class="svg-ico" style="width:18px;height:18px" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
           <span class="ios-row-title">Мой профиль</span>
           <svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="ios-subpanel" id="subProfile">
-          <div class="mode-switch-bar" style="margin-bottom: 12px;">
-            <button type="button" class="mode-btn" id="btnSetDesktop" onclick="setDeviceMode('desktop')">Режим ПК</button>
-            <button type="button" class="mode-btn" id="btnSetMobile" onclick="setDeviceMode('mobile')">Режим Телефона</button>
-          </div>
-          <span class="set-label">Имя и статус</span>
-          <div style="display: flex; gap: 6px; margin-bottom: 10px;">
-            <input type="text" class="auth-input" id="editNameInput" placeholder="Имя" style="margin-bottom: 0;">
-            <select class="select-input" id="editStatusInput" style="width: 85px; margin-bottom: 0;">
-              <option value="⚡">⚡</option><option value="👑">👑</option><option value="🔥">🔥</option><option value="😎">😎</option><option value="🎮">🎮</option><option value="">Нет</option>
-            </select>
-          </div>
-          <span class="set-label">Имя пользователя</span>
-          <input type="text" class="auth-input" id="editUsernameInput" placeholder="@username">
-          <button type="button" class="btn-primary" onclick="saveAllSettings()">Сохранить профиль</button>
         </div>
       </div>
 
@@ -361,18 +365,14 @@
           <svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
 
-        <div class="ios-list-row" onclick="toggleSetSub('subAccounts')">
+        <div class="ios-list-row" onclick="openIosPage('pageDevices')">
           <div class="ios-sq-icon" style="background: #ff9500;"><svg class="svg-ico" style="width:18px;height:18px" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
-          <span class="ios-row-title">Аккаунты</span>
+          <span class="ios-row-title">Устройства</span>
           <span class="ios-row-val" id="iosAccCountVal">1</span>
           <svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="ios-subpanel" id="subAccounts">
-          <div id="accountsList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;"></div>
-          <button type="button" class="btn-primary" style="background: rgba(255,59,48,0.18); color: #ff453a;" onclick="removeSavedAccount(myId)">Выйти из текущего аккаунта</button>
-        </div>
 
-        <div class="ios-list-row" onclick="$('settingsModal').style.display='none';openCreateFolderModal()">
+        <div class="ios-list-row" onclick="openIosPage('pageFolders')">
           <div class="ios-sq-icon" style="background: #5ac8fa;"><svg style="width:18px;height:18px;fill:#fff" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></div>
           <span class="ios-row-title">Папки с чатами</span>
           <svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
@@ -380,57 +380,259 @@
       </div>
 
       <div class="ios-list-group">
-        <div class="ios-list-row" onclick="toggleSetSub('subNotif')">
+        <div class="ios-list-row" onclick="openIosPage('pageNotif')">
           <div class="ios-sq-icon" style="background: #ff3b30;"><svg style="width:17px;height:17px;fill:#fff" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div>
           <span class="ios-row-title">Уведомления и звуки</span>
           <svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="ios-subpanel" id="subNotif">
-          <div style="font-size: 14px; color: #8e8e93; margin-bottom: 10px;">Системные уведомления безопасности и звука активны.</div>
-          <button type="button" class="btn-primary" onclick="testNotifySound()">Проверить звук уведомления</button>
-        </div>
 
-        <div class="ios-list-row" onclick="toggleSetSub('subPrivacy')">
+        <div class="ios-list-row" onclick="openIosPage('pagePrivacy')">
           <div class="ios-sq-icon" style="background: #8e8e93;"><svg style="width:17px;height:17px;fill:#fff" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></div>
           <span class="ios-row-title">Конфиденциальность</span>
           <svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="ios-subpanel" id="subPrivacy">
-          <span class="set-label">Резервный Gmail</span>
-          <div id="gmailCurrentStatus" style="font-size: 13px; color: #8e8e93; margin-bottom: 8px;">Почта Gmail не привязана</div>
-          <div style="display: flex; gap: 6px; margin-bottom: 12px;">
-            <input type="email" class="auth-input" id="bindGmailInput" placeholder="example@gmail.com" style="margin-bottom: 0; flex: 1;">
-            <button type="button" class="btn-primary" style="width: auto; padding: 0 14px; font-size: 14px;" onclick="bindGmailAccount()">Привязать</button>
-          </div>
-          <span class="set-label">Облачный пароль</span>
-          <input type="password" class="auth-input" id="editPassInput" placeholder="Новый облачный пароль">
-          <button type="button" class="btn-primary" onclick="saveAllSettings()">Сохранить пароль</button>
-        </div>
 
-        <div class="ios-list-row" onclick="toggleSetSub('subAppearance')">
+        <div class="ios-list-row" onclick="openIosPage('pageAppearance')">
           <div class="ios-sq-icon" style="background: #5ac8fa;"><svg style="width:18px;height:18px;fill:#fff" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18V4c4.41 0 8 3.59 8 8s-3.59 8-8 8z"/></svg></div>
           <span class="ios-row-title">Оформление</span>
           <svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="ios-subpanel" id="subAppearance">
-          <span class="set-label">Тема интерфейса</span>
-          <select class="select-input" id="themeSelect" onchange="applyTheme(this.value)">
-            <option value="default">iOS Тёмная (Liquid Glass)</option><option value="oled">Ночная чёрная (OLED)</option><option value="blue">Классическая синяя</option>
-          </select>
-          <span class="set-label">Обои чата</span>
-          <select class="select-input" id="wallSelect" onchange="applyWallpaper(this.value)">
-            <option value="none">Без обоев</option><option value="bg1">Изумрудный узор</option><option value="bg2">Чёрный самолётик</option><option value="bg3">Светлый паттерн</option><option value="bg4">Чёрно-красный гранж</option>
-          </select>
-          <span class="set-label">Размер текста</span>
-          <select class="select-input" id="fontSizeSelect" onchange="applyFontSize(this.value)" style="margin-bottom: 0;">
-            <option value="13px">Мелкий (13px)</option><option value="16px" selected>Обычный iOS (16px)</option><option value="18px">Крупный (18px)</option>
-          </select>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="folders-bar">
+  <!-- Полноэкранная страница 1: Мой профиль -->
+  <div class="ios-subpage" id="pageProfile">
+    <div class="ios-sub-header">
+      <button type="button" class="ios-icon-circle" onclick="closeIosPage('pageProfile')"><svg class="svg-ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="ios-sub-title">Мой профиль</div>
+      <button type="button" class="ios-pill-btn" style="color:#4ea4f6" onclick="saveAllSettings();closeIosPage('pageProfile')">Готово</button>
+    </div>
+    <div class="ios-subpage-inner">
+      <div class="mode-switch-bar" style="margin-bottom: 16px;">
+        <button type="button" class="mode-btn" id="btnSetDesktop" onclick="setDeviceMode('desktop')">Режим ПК</button>
+        <button type="button" class="mode-btn" id="btnSetMobile" onclick="setDeviceMode('mobile')">Режим Телефона</button>
+      </div>
+      <div class="ios-sec-caption">ИМЯ И СТАТУС</div>
+      <div class="ios-group-card">
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <input type="text" class="auth-input" id="editNameInput" placeholder="Имя" style="margin-bottom: 0;">
+          <select class="select-input" id="editStatusInput" style="width: 85px; margin-bottom: 0;">
+            <option value="⚡">⚡</option><option value="👑">👑</option><option value="🔥">🔥</option><option value="😎">😎</option><option value="🎮">🎮</option><option value="">Нет</option>
+          </select>
+        </div>
+        <input type="text" class="auth-input" id="editUsernameInput" placeholder="@username" style="margin-bottom: 0;">
+      </div>
+      <button type="button" class="btn-primary" onclick="saveAllSettings();closeIosPage('pageProfile')">Сохранить профиль</button>
+    </div>
+  </div>
+
+  <!-- Полноэкранная страница 2: Папки с чатами (скрин 1) -->
+  <div class="ios-subpage" id="pageFolders">
+    <div class="ios-sub-header">
+      <button type="button" class="ios-icon-circle" onclick="closeIosPage('pageFolders')"><svg class="svg-ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="ios-sub-title">Папки</div>
+      <button type="button" class="ios-pill-btn" onclick="openCreateFolderModal()">Изм.</button>
+    </div>
+    <div class="ios-subpage-inner" style="text-align: center;">
+      <div style="width: 68px; height: 56px; margin: 4px auto 12px; border-radius: 14px; background: linear-gradient(180deg, #f6c88f, #d49a5a); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.4);">
+        <svg style="width:34px;height:34px;fill:#fff" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+      </div>
+      <p style="color: #8e8e93; font-size: 13.5px; margin-bottom: 18px; line-height: 1.4;">Вы можете создать папки с нужными чатами и переключаться между ними.</p>
+      <div class="ios-sec-caption">ПАПКИ</div>
+      <div class="ios-list-group" id="iosFoldersPageList"></div>
+      <div class="ios-sec-foot">Чтобы удалить папку, нажмите на красную кнопку удаления рядом с ней.</div>
+      <div class="ios-sec-caption">РЕКОМЕНДОВАННЫЕ ПАПКИ</div>
+      <div class="ios-list-group">
+        <div class="ios-list-row">
+          <div style="flex:1"><div style="font-size:16px;font-weight:600">Новые</div><div style="font-size:13px;color:#8e8e93">Чаты с новыми сообщениями</div></div>
+          <button type="button" style="background:#4ea4f6;color:#fff;border:none;padding:6px 14px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer" onclick="createPresetFolder('Новые','🔥')">СОЗДАТЬ</button>
+        </div>
+        <div class="ios-list-row">
+          <div style="flex:1"><div style="font-size:16px;font-weight:600">Личные</div><div style="font-size:13px;color:#8e8e93">Сообщения из личных чатов</div></div>
+          <button type="button" style="background:#4ea4f6;color:#fff;border:none;padding:6px 14px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer" onclick="createPresetFolder('Личные','❤️')">СОЗДАТЬ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Полноэкранная страница 3: Устройства и Аккаунты (скрин 2) -->
+  <div class="ios-subpage" id="pageDevices">
+        <div class="ios-sub-header">
+      <button type="button" class="ios-icon-circle" onclick="closeIosPage('pageDevices')"><svg class="svg-ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="ios-sub-title">Устройства</div>
+      <button type="button" class="ios-pill-btn" onclick="openMyQr()">QR</button>
+    </div>
+    <div class="ios-subpage-inner" style="text-align: center;">
+      <p style="color: #8e8e93; font-size: 13.5px; margin-bottom: 14px;">Подключайте приложения TurboGram для компьютера или телефона с помощью QR-кода.</p>
+      <button type="button" class="ios-blue-cta" onclick="openMyQr()">
+        <svg class="svg-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Подключить устройство</span>
+      </button>
+      <div class="ios-sec-caption">ЭТО УСТРОЙСТВО</div>
+      <div class="ios-list-group">
+        <div class="ios-list-row">
+          <div class="ios-sq-icon" style="background: #3390ec;"><svg class="svg-ico" style="width:18px;height:18px" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+          <div style="flex:1"><div style="font-size:16px;font-weight:600">TurboGram Client</div><div style="font-size:13px;color:#8e8e93" id="devCurrentInfo">Текущая сессия • в сети</div></div>
+        </div>
+        <div class="ios-list-row" onclick="removeSavedAccount(myId)">
+          <div class="ios-sq-icon" style="background: transparent; color: #ff453a;"><svg class="svg-ico" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+          <span class="ios-row-title" style="color: #ff453a;">Завершить текущий сеанс</span>
+        </div>
+      </div>
+      <div class="ios-sec-caption">АККАУНТЫ НА ЭТОМ УСТРОЙСТВЕ</div>
+      <div class="ios-group-card" id="accountsList"></div>
+    </div>
+  </div>
+
+  <!-- Полноэкранная страница 4: Уведомления (скрины 3, 4, 5) -->
+  <div class="ios-subpage" id="pageNotif">
+    <div class="ios-sub-header">
+      <button type="button" class="ios-icon-circle" onclick="closeIosPage('pageNotif')"><svg class="svg-ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="ios-sub-title">Уведомления</div>
+      <div style="width: 36px;"></div>
+    </div>
+    <div class="ios-subpage-inner">
+      <div class="ios-sec-caption">ПОКАЗЫВАТЬ УВЕДОМЛЕНИЯ</div>
+      <div class="ios-list-group">
+        <div class="ios-list-row"><span class="ios-row-title">Всех аккаунтов</span><label class="ios-toggle"><input type="checkbox" checked><span class="ios-slider"></span></label></div>
+      </div>
+      <div class="ios-sec-foot">Отключите, если хотите получать только уведомления активного аккаунта.</div>
+
+      <div class="ios-sec-caption">УВЕДОМЛЕНИЯ О СООБЩЕНИЯХ</div>
+      <div class="ios-list-group">
+        <div class="ios-list-row" onclick="toggleNotifItem('priv')"><div class="ios-sq-icon" style="background:#3390ec"><svg style="width:17px;height:17px;fill:#fff" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div><div style="flex:1"><div class="ios-row-title">Личные чаты</div></div><span class="ios-row-val" id="valNotifPriv">Вкл.</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="toggleNotifItem('grp')"><div class="ios-sq-icon" style="background:#34c759"><svg style="width:17px;height:17px;fill:#fff" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><div style="flex:1"><div class="ios-row-title">Группы</div></div><span class="ios-row-val" id="valNotifGrp">Вкл.</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="toggleNotifItem('chn')"><div class="ios-sq-icon" style="background:#ff9500"><svg style="width:17px;height:17px;fill:#fff" viewBox="0 0 24 24"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4z"/></svg></div><div style="flex:1"><div class="ios-row-title">Каналы</div></div><span class="ios-row-val" id="valNotifChn">Вкл.</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="toggleNotifItem('str')"><div class="ios-sq-icon" style="background:#af52de"><svg style="width:17px;height:17px;fill:#fff" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></div><div style="flex:1"><div class="ios-row-title">Истории</div></div><span class="ios-row-val" id="valNotifStr">Вкл.</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="toggleNotifItem('rct')"><div class="ios-sq-icon" style="background:#ff2d55"><svg style="width:16px;height:16px;fill:#fff" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div><div style="flex:1"><div class="ios-row-title">Реакции</div></div><span class="ios-row-val" id="valNotifRct">Вкл.</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+
+      <div class="ios-sec-caption">УВЕДОМЛЕНИЯ В ПРИЛОЖЕНИИ</div>
+      <div class="ios-list-group">
+        <div class="ios-list-row"><span class="ios-row-title">Звук</span><label class="ios-toggle"><input type="checkbox" checked onchange="if(this.checked)testNotifySound()"><span class="ios-slider"></span></label></div>
+        <div class="ios-list-row"><span class="ios-row-title">Вибрация</span><label class="ios-toggle"><input type="checkbox" onchange="if(this.checked && navigator.vibrate)navigator.vibrate(80)"><span class="ios-slider"></span></label></div>
+        <div class="ios-list-row"><span class="ios-row-title">Показывать текст</span><label class="ios-toggle"><input type="checkbox" checked><span class="ios-slider"></span></label></div>
+      </div>
+
+      <div class="ios-list-group">
+        <div class="ios-list-row"><span class="ios-row-title">Имена в уведомлениях</span><label class="ios-toggle"><input type="checkbox" checked><span class="ios-slider"></span></label></div>
+      </div>
+
+      <div class="ios-sec-caption">СЧЁТЧИК НА ИКОНКЕ</div>
+      <div class="ios-list-group">
+        <div class="ios-list-row"><span class="ios-row-title">Каналы</span><label class="ios-toggle"><input type="checkbox" checked><span class="ios-slider"></span></label></div>
+        <div class="ios-list-row"><span class="ios-row-title">Число сообщений</span><label class="ios-toggle"><input type="checkbox" checked><span class="ios-slider"></span></label></div>
+      </div>
+
+      <div class="ios-list-group">
+        <div class="ios-list-row"><span class="ios-row-title">Новые контакты</span><label class="ios-toggle"><input type="checkbox" checked><span class="ios-slider"></span></label></div>
+      </div>
+
+      <div class="ios-list-group">
+        <div class="ios-list-row" onclick="alert('Настройки уведомлений сброшены к стандартным')"><span class="ios-row-title" style="color: #ff453a;">Сбросить настройки уведомлений</span></div>
+      </div>
+    </div>
+  </div>
+    <!-- Полноэкранная страница 5: Конфиденциальность (скрины 6, 7, 8) -->
+  <div class="ios-subpage" id="pagePrivacy">
+    <div class="ios-sub-header">
+      <button type="button" class="ios-icon-circle" onclick="closeIosPage('pagePrivacy')"><svg class="svg-ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="ios-sub-title">Конфиденциальность</div>
+      <div style="width: 36px;"></div>
+    </div>
+    <div class="ios-subpage-inner">
+      <div class="ios-list-group">
+        <div class="ios-list-row" onclick="alert('Чёрный список пуст (0)')"><div class="ios-sq-icon" style="background:#ff3b30"><svg style="width:17px;height:17px;fill:#fff" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><rect x="7" y="11" width="10" height="2" fill="#ff3b30"/></svg></div><span class="ios-row-title">Чёрный список</span><span class="ios-row-val">0</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="toggleSetSub('privPassBox')"><div class="ios-sq-icon" style="background:#ff9500"><svg style="width:17px;height:17px;fill:#fff" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg></div><span class="ios-row-title">Облачный пароль</span><span class="ios-row-val">Изменить</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-subpanel" id="privPassBox">
+          <input type="password" class="auth-input" id="editPassInput" placeholder="Новый облачный пароль">
+          <button type="button" class="btn-primary" onclick="saveAllSettings()">Сохранить пароль</button>
+        </div>
+        <div class="ios-list-row" onclick="alert('Автоудаление неактивных чатов в базе данных: каждые 24 часа без следов')"><div class="ios-sq-icon" style="background:#af52de"><svg style="width:17px;height:17px;fill:#fff" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg></div><span class="ios-row-title">Автоудаление сообщений</span><span class="ios-row-val">24 ч</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+
+      <div class="ios-list-group">
+        <div class="ios-list-row" onclick="toggleSetSub('privMailBox')"><div class="ios-sq-icon" style="background:#5856d6"><span style="font-weight:700;font-size:16px">@</span></div><span class="ios-row-title">Почта для входа</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-subpanel" id="privMailBox">
+          <div id="gmailCurrentStatus" style="font-size: 13px; color: #8e8e93; margin-bottom: 8px;">Почта Gmail не привязана</div>
+          <div style="display: flex; gap: 6px;">
+            <input type="email" class="auth-input" id="bindGmailInput" placeholder="example@gmail.com" style="margin-bottom: 0; flex: 1;">
+            <button type="button" class="btn-primary" style="width: auto; padding: 0 14px; font-size: 14px;" onclick="bindGmailAccount()">Привязать</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ios-sec-caption">КОНФИДЕНЦИАЛЬНОСТЬ</div>
+      <div class="ios-list-group">
+        <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Номер телефона</span><span class="ios-row-val">Никто</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Время захода</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Фотографии профиля</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Пересылка сообщений</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Звонки</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Голосовые сообщения</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Приглашения</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+
+      <div class="ios-sec-caption">УДАЛИТЬ АККАУНТ АВТОМАТИЧЕСКИ</div>
+      <div class="ios-list-group">
+        <div class="ios-list-row" onclick="cyclePrivTtl(this)"><span class="ios-row-title">Если я не захожу</span><span class="ios-row-val">24 месяца</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Полноэкранная страница 6: Оформление (скрины 9, 10) -->
+  <div class="ios-subpage" id="pageAppearance">
+    <div class="ios-sub-header">
+      <button type="button" class="ios-icon-circle" onclick="closeIosPage('pageAppearance')"><svg class="svg-ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="ios-sub-title">Оформление</div>
+      <div style="width: 36px;"></div>
+    </div>
+    <div class="ios-subpage-inner">
+      <div class="ios-sec-caption">ЦВЕТОВАЯ ТЕМА — НОЧНОЙ РЕЖИМ</div>
+      <div class="ios-list-group" style="padding-top: 12px;">
+        <div style="padding: 0 12px;">
+          <div class="ios-theme-preview-box">
+            <div style="background:#1c242f;padding:7px 11px;border-radius:14px;align-self:flex-start;max-width:82%;font-size:13.5px"><b style="color:#5ac8fa;font-size:12px">Боб Харрис</b><br>Доброе утро! 👋<br>Знаешь, который час?</div>
+            <div style="background:#2b5278;padding:7px 11px;border-radius:14px;align-self:flex-end;font-size:13.5px">В Токио утро 😎 <span style="font-size:10px;color:#90caf9">01:20 ✓✓</span></div>
+          </div>
+        </div>
+        <div class="ios-theme-cards">
+          <div class="ios-tcard active" id="tcDefault" onclick="pickThemeCard('default', this)"><div style="height:18px;border-radius:9px;background:linear-gradient(90deg,#f59e0b,#10b981)"></div><div style="text-align:center;font-size:18px">🎄</div></div>
+          <div class="ios-tcard" id="tcOled" onclick="pickThemeCard('oled', this)"><div style="height:18px;border-radius:9px;background:linear-gradient(90deg,#ec4899,#6366f1)"></div><div style="text-align:center;font-size:18px">🎮</div></div>
+          <div class="ios-tcard" id="tcBlue" onclick="pickThemeCard('blue', this)"><div style="height:18px;border-radius:9px;background:linear-gradient(90deg,#5ac8fa,#007aff)"></div><div style="text-align:center;font-size:18px">🎨</div></div>
+        </div>
+        <div class="ios-list-row" style="padding: 8px 14px;">
+          <span class="ios-row-title">Тема</span>
+          <select class="select-input" id="themeSelect" onchange="applyTheme(this.value)" style="width: auto; margin-bottom: 0; padding: 6px 10px;">
+            <option value="default">iOS Тёмная</option><option value="oled">Чёрная OLED</option><option value="blue">Классическая синяя</option>
+          </select>
+        </div>
+        <div class="ios-list-row" style="padding: 8px 14px;">
+          <span class="ios-row-title">Обои для чатов</span>
+          <select class="select-input" id="wallSelect" onchange="applyWallpaper(this.value)" style="width: auto; margin-bottom: 0; padding: 6px 10px;">
+            <option value="none">Без обоев</option><option value="bg1">Изумрудный узор</option><option value="bg2">Чёрный самолётик</option><option value="bg3">Светлый паттерн</option><option value="bg4">Чёрно-красный гранж</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ios-list-group">
+        <div class="ios-list-row"><span class="ios-row-title">Ночной режим</span><label class="ios-toggle"><input type="checkbox" checked onchange="applyTheme(this.checked?'oled':'blue')"><span class="ios-slider"></span></label></div>
+      </div>
+
+      <div class="ios-list-group">
+        <div class="ios-list-row" style="padding: 8px 14px;">
+          <span class="ios-row-title">Размер текста</span>
+          <select class="select-input" id="fontSizeSelect" onchange="applyFontSize(this.value)" style="width: auto; margin-bottom: 0; padding: 6px 10px;">
+            <option value="13px">Мелкий (13px)</option><option value="16px" selected>Системный (16px)</option><option value="18px">Крупный (18px)</option>
+          </select>
+        </div>
+        <div class="ios-list-row" onclick="alert('Скругление пузырей сообщений: 18px (стиль iOS)')"><span class="ios-row-title">Углы блоков с сообщениями</span><span class="ios-row-val">18 px</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="ios-list-row" onclick="alert('Плавные анимации интерфейса включены')"><span class="ios-row-title">Анимации</span><span class="ios-row-val">Вкл.</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+    </div>
+  </div>
+
     <div id="desktopFoldersList" style="display: flex; flex-direction: column; gap: 6px; align-items: center; width: 100%;"></div>
     <div class="folder-item" onclick="openCreateFolderModal()"><span>+</span><span>Папка</span></div>
     <div class="bottom-tools">
@@ -543,6 +745,60 @@
         osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.15);
       } catch (e) {}
       alert('Звук уведомления проверен!');
+    }
+        function openIosPage(id) {
+      if (id === 'pageFolders') renderIosFoldersPage();
+      if (id === 'pageDevices' && document.getElementById('devCurrentInfo')) {
+        document.getElementById('devCurrentInfo').textContent = (typeof myId !== 'undefined' ? myId : '') + ' • в сети';
+      }
+      const el = document.getElementById(id);
+      if (el) el.classList.add('open');
+    }
+    function closeIosPage(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('open');
+    }
+    function renderIosFoldersPage() {
+      const box = document.getElementById('iosFoldersPageList');
+      if (!box) return;
+      let html = `<div class="ios-list-row" onclick="openCreateFolderModal()"><span class="ios-row-title" style="color:#4ea4f6">Создать папку</span></div>`;
+      html += `<div class="ios-list-row"><span class="ios-row-title">Все чаты</span></div>`;
+      if (typeof customFolders !== 'undefined') {
+        customFolders.forEach(f => {
+          html += `<div class="ios-list-row"><span class="ios-row-title">${f.name} ${f.icon || ''}</span><span style="color:#ff453a;font-size:14px;cursor:pointer" onclick="deleteCustomFolder('${f.id}');renderIosFoldersPage()">Удалить</span></div>`;
+        });
+      }
+      box.innerHTML = html;
+    }
+    function createPresetFolder(name, icon) {
+      if (typeof customFolders === 'undefined') return;
+      customFolders.push({ id: 'f_' + Date.now(), name, icon, chatIds: ['saved', 'service'] });
+      localStorage.setItem('tg_custom_folders', JSON.stringify(customFolders));
+      if (typeof renderFoldersUI === 'function') renderFoldersUI();
+      renderIosFoldersPage();
+    }
+    function toggleNotifItem(key) {
+      const map = { priv: 'valNotifPriv', grp: 'valNotifGrp', chn: 'valNotifChn', str: 'valNotifStr', rct: 'valNotifRct' };
+      const el = document.getElementById(map[key]);
+      if (el) el.textContent = el.textContent === 'Вкл.' ? 'Выкл.' : 'Вкл.';
+    }
+    function cyclePriv(row) {
+      const val = row.querySelector('.ios-row-val');
+      if (!val) return;
+      const order = ['Все', 'Мои контакты', 'Никто'];
+      val.textContent = order[(order.indexOf(val.textContent) + 1) % order.length];
+    }
+    function cyclePrivTtl(row) {
+      const val = row.querySelector('.ios-row-val');
+      if (!val) return;
+      const order = ['1 месяц', '3 месяца', '6 месяцев', '12 месяцев', '24 месяца'];
+      val.textContent = order[(order.indexOf(val.textContent) + 1) % order.length];
+    }
+    function pickThemeCard(val, el) {
+      document.querySelectorAll('.ios-tcard').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      if (document.getElementById('themeSelect')) document.getElementById('themeSelect').value = val;
+      if (typeof applyTheme === 'function') applyTheme(val);
     }
   </script>
 </body>
