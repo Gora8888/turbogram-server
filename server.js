@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const WebSocket = require('ws');
+const { Pool } = require('pg');
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = fs.existsSync('/data') ? '/data' : __dirname;
@@ -11,17 +12,104 @@ const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
 const STORIES_FILE = path.join(DATA_DIR, 'stories.json');
 const ROOMS_FILE = path.join(DATA_DIR, 'rooms.json');
 
+// Подключение к вечной базе PostgreSQL (если добавлена в Railway)
+const pool = process.env.DATABASE_URL
+  ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+  : null;
+
 let users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')) : {};
 let history = fs.existsSync(HISTORY_FILE) ? JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')) : [];
 let stories = fs.existsSync(STORIES_FILE) ? JSON.parse(fs.readFileSync(STORIES_FILE, 'utf8')) : [];
 let rooms = fs.existsSync(ROOMS_FILE) ? JSON.parse(fs.readFileSync(ROOMS_FILE, 'utf8')) : {};
 const clients = new Map();
 
-const saveUsers = () => fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-const saveHistory = () => fs.writeFileSync(HISTORY_FILE, JSON.stringify(history.slice(-1000), null, 2));
+// Инициализация таблиц в PostgreSQL и загрузка пользователей в память
+async function initDatabase() {
+  if (!pool) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tg_users (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      username TEXT,
+      email TEXT,
+      password_hash TEXT,
+      status TEXT,
+      avatar TEXT,
+      last_seen BIGINT
+    );
+    CREATE TABLE IF NOT EXISTS tg_messages (
+      msg_id TEXT PRIMARY KEY,
+      from_id TEXT,
+      from_name TEXT,
+      target_to TEXT,
+      cipher_text TEXT,
+      payload_json TEXT,
+      created_at BIGINT
+    );
+  `);
+  const res = await pool.query('SELECT * FROM tg_users');
+  res.rows.forEach(r => {
+    users[r.id] = {
+      id: r.id,
+      name: r.name,
+      username: r.username || '',
+      email: r.email || '',
+      passwordHash: r.password_hash || '',
+      status: r.status || '⚡',
+      avatar: r.avatar || '',
+      lastSeen: Number(r.last_seen) || Date.now()
+    };
+  });
+  const msgRes = await pool.query('SELECT * FROM tg_messages ORDER BY created_at ASC');
+  history = msgRes.rows.map(r => JSON.parse(r.payload_json));
+  console.log(`База PostgreSQL подключена: загружено пользователей — ${res.rows.length}`);
+}
+
+function saveUserToDb(u) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  if (pool) {
+    pool.query(
+      `INSERT INTO tg_users (id, name, username, email, password_hash, status, avatar, last_seen)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT (id) DO UPDATE SET
+       name=$2, username=$3, email=$4, password_hash=$5, status=$6, avatar=$7, last_seen=$8`,
+      [u.id, u.name, u.username || '', u.email || '', u.passwordHash || '', u.status || '⚡', u.avatar || '', u.lastSeen || Date.now()]
+    ).catch(console.error);
+  }
+}
+
+function saveHistoryToDb(newMsg) {
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(history.slice(-1000), null, 2));
+  if (pool && newMsg) {
+    pool.query(
+      `INSERT INTO tg_messages (msg_id, from_id, from_name, target_to, cipher_text, payload_json, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (msg_id) DO NOTHING`,
+      [newMsg.msgId, newMsg.fromId, newMsg.fromName, newMsg.to, newMsg.text || '', JSON.stringify(newMsg), newMsg.createdAt || Date.now()]
+    ).catch(console.error);
+  }
+}
+
 const saveStories = () => fs.writeFileSync(STORIES_FILE, JSON.stringify(stories, null, 2));
 const saveRooms = () => fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2));
 
+// Надёжное хэширование паролей (scrypt + случайная соль)
+function hashPassword(plain) {
+  if (!plain) return '';
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(String(plain), salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(plain, storedHash, legacyPlain) {
+  if (!storedHash && !legacyPlain) return true;
+  if (legacyPlain && !storedHash) return String(plain) === String(legacyPlain);
+  const [salt, key] = String(storedHash).split(':');
+  if (!salt || !key) return false;
+  const derived = crypto.scryptSync(String(plain || ''), salt, 64).toString('hex');
+  return crypto.timingSafeEqual(Buffer.from(key, 'hex'), Buffer.from(derived, 'hex'));
+}
+
+// Шифрование сообщений (шифр Вернама + случайный nonce)
 const VERNAM_KEY = Buffer.from(process.env.VERNAM_KEY || 'TurboGramSuperSecretVernamKey2026!@#', 'utf8');
 
 function vernamEncrypt(text) {
@@ -50,6 +138,32 @@ function vernamDecrypt(enc) {
     return enc;
   }
 }
+
+// Анонимная авто-очистка: каждые 5 минут стираем без следов переписки неактивных пользователей (> 24 часов оффлайн)
+const INACTIVE_TTL_MS = 24 * 3600 * 1000;
+setInterval(() => {
+  const now = Date.now();
+  const beforeLen = history.length;
+  history = history.filter(m => {
+    if (isRoomTarget(m.to)) return now - (m.createdAt || now) < INACTIVE_TTL_MS * 3;
+    const sender = users[m.fromId];
+    const receiver = users[m.to];
+    const senderActive = clients.has(m.fromId) || (sender && now - (sender.lastSeen || 0) < INACTIVE_TTL_MS);
+    const receiverActive = clients.has(m.to) || (receiver && now - (receiver.lastSeen || 0) < INACTIVE_TTL_MS);
+    return senderActive || receiverActive;
+  });
+  if (history.length !== beforeLen) {
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history.slice(-1000), null, 2));
+    if (pool) {
+      const keepIds = history.map(m => m.msgId);
+      if (keepIds.length) {
+        pool.query('DELETE FROM tg_messages WHERE NOT (msg_id = ANY($1))', [keepIds]).catch(console.error);
+      } else {
+        pool.query('TRUNCATE TABLE tg_messages').catch(console.error);
+      }
+    }
+  }
+}, 5 * 60 * 1000);
 
 function normalizePhone(raw) {
   const digits = String(raw || '').replace(/\D/g, '');
@@ -118,6 +232,7 @@ function routeToTarget(to, payloadStr, senderWs) {
     if (senderWs && senderWs !== targetWs && senderWs.readyState === WebSocket.OPEN) senderWs.send(payloadStr);
   }
 }
+
 wss.on('connection', ws => {
   let myId = null;
 
@@ -128,23 +243,14 @@ wss.on('connection', ws => {
     if (data.id) data.id = normalizePhone(data.id);
 
     if (data.type === 'auto_login') {
-      let u = users[data.id];
-      if (!u && data.savedProfile && data.savedProfile.name) {
-        u = users[data.id] = {
-          id: data.id,
-          name: data.savedProfile.name,
-          username: data.savedProfile.username || '',
-          email: data.savedProfile.email || '',
-          password: data.savedProfile.password || '',
-          status: data.savedProfile.status || '⚡',
-          avatar: data.savedProfile.avatar || ''
-        };
-        saveUsers();
-      }
+      const u = users[data.id];
       if (!u) return ws.send(JSON.stringify({ type: 'auto_login_failed', id: data.id }));
+      u.lastSeen = Date.now();
+      saveUserToDb(u);
       myId = data.id;
       clients.set(myId, ws);
-      ws.send(JSON.stringify({ type: 'auth_success', ...u }));
+      const { passwordHash, password, ...safeUser } = u;
+      ws.send(JSON.stringify({ type: 'auth_success', ...safeUser }));
       broadcastUsers();
       sendHistory(ws, myId);
       return;
@@ -152,16 +258,19 @@ wss.on('connection', ws => {
 
     if (data.type === 'check_phone') {
       const u = users[data.id];
-      ws.send(JSON.stringify({ type: 'phone_checked', id: data.id, exists: !!u, hasPassword: !!(u && u.password) }));
+      const hasPass = !!(u && (u.passwordHash || u.password));
+      ws.send(JSON.stringify({ type: 'phone_checked', id: data.id, exists: !!u, hasPassword: hasPass }));
       return;
     }
 
     if (data.type === 'direct_auth') {
       let u = users[data.id];
-      if (u) {
-        if (u.password && u.password !== String(data.password || '').trim()) {
-          return ws.send(JSON.stringify({ type: 'auth_error', message: 'Неверный облачный пароль!' }));
+            if (u) {
+        if ((u.passwordHash || u.password) && !verifyPassword(data.password, u.passwordHash, u.password)) {
+          return ws.send(JSON.stringify({ type: 'auth_error', message: 'Неверный пароль! Доступ запрещён.' }));
         }
+        u.lastSeen = Date.now();
+        saveUserToDb(u);
       } else {
         const cleanName = String(data.name || '').trim();
         if (!cleanName) return ws.send(JSON.stringify({ type: 'auth_error', message: 'Введите ваше имя!' }));
@@ -174,21 +283,24 @@ wss.on('connection', ws => {
           name: cleanName,
           username: cleanUname,
           email: '',
-          password: String(data.password || '').trim(),
+          passwordHash: hashPassword(String(data.password || '').trim()),
           status: '⚡',
-          avatar: ''
+          avatar: '',
+          lastSeen: Date.now()
         };
-        saveUsers();
+        saveUserToDb(u);
       }
       myId = data.id;
       clients.set(myId, ws);
-      ws.send(JSON.stringify({ type: 'auth_success', ...u }));
+      const { passwordHash, password, ...safeUser } = u;
+      ws.send(JSON.stringify({ type: 'auth_success', ...safeUser }));
       broadcastUsers();
       sendHistory(ws, myId);
       return;
     }
 
     if (!myId || !users[myId]) return;
+    users[myId].lastSeen = Date.now();
 
     if (data.type === 'bind_gmail') {
       const email = String(data.email || '').trim().toLowerCase();
@@ -197,7 +309,7 @@ wss.on('connection', ws => {
         return ws.send(JSON.stringify({ type: 'profile_error', message: 'Этот Gmail уже привязан к другому аккаунту!' }));
       }
       users[myId].email = email;
-      saveUsers();
+      saveUserToDb(users[myId]);
       ws.send(JSON.stringify({ type: 'gmail_bound', email }));
       return;
     }
@@ -221,12 +333,7 @@ wss.on('connection', ws => {
 
     if (data.type === 'create_room') {
       const roomId = (data.kind === 'channel' ? 'ch_' : 'gr_') + Date.now();
-      rooms[roomId] = {
-        id: roomId,
-        kind: data.kind || 'group',
-        title: String(data.title || 'Новая группа').trim(),
-        ownerId: myId
-      };
+      rooms[roomId] = { id: roomId, kind: data.kind || 'group', title: String(data.title || 'Новая группа').trim(), ownerId: myId };
       saveRooms();
       const payload = JSON.stringify({ type: 'rooms_list', rooms: Object.values(rooms) });
       wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(payload); });
@@ -243,10 +350,13 @@ wss.on('connection', ws => {
         u.username = cleanU;
       }
       if (data.name) u.name = String(data.name).trim();
-      if (data.password) u.password = String(data.password).trim();
+      if (data.password) {
+        u.passwordHash = hashPassword(String(data.password).trim());
+        delete u.password;
+      }
       if (data.status !== undefined) u.status = data.status;
       if (data.avatar !== undefined) u.avatar = data.avatar;
-      saveUsers();
+      saveUserToDb(u);
       broadcastUsers();
       return;
     }
@@ -275,11 +385,13 @@ wss.on('connection', ws => {
         file: data.file || null,
         reply: data.reply || null,
         destruct: !!data.destruct,
+        createdAt: Date.now(),
         time
       };
       if (!msgObj.destruct) {
-        history.push({ ...msgObj, text: msgObj.text ? vernamEncrypt(msgObj.text) : '' });
-        saveHistory();
+        const encryptedRecord = { ...msgObj, text: msgObj.text ? vernamEncrypt(msgObj.text) : '' };
+        history.push(encryptedRecord);
+        saveHistoryToDb(encryptedRecord);
       }
       const str = JSON.stringify(msgObj);
       if (isRoomTarget(data.to)) {
@@ -295,14 +407,15 @@ wss.on('connection', ws => {
 
     if (data.type === 'edit_msg') {
       const m = history.find(x => x.msgId === data.msgId && x.fromId === myId);
-      if (m) { m.text = vernamEncrypt(data.text); m.edited = true; saveHistory(); }
+      if (m) { m.text = vernamEncrypt(data.text); m.edited = true; saveHistoryToDb(m); }
       routeToTarget(data.to, JSON.stringify({ type: 'edit_msg', fromId: myId, to: data.to, msgId: data.msgId, text: data.text }), ws);
       return;
     }
 
     if (data.type === 'delete_msg') {
       history = history.filter(x => !(x.msgId === data.msgId && x.fromId === myId));
-      saveHistory();
+      fs.writeFileSync(HISTORY_FILE, JSON.stringify(history.slice(-1000), null, 2));
+      if (pool) pool.query('DELETE FROM tg_messages WHERE msg_id=$1 AND from_id=$2', [data.msgId, myId]).catch(console.error);
       routeToTarget(data.to, JSON.stringify({ type: 'delete_msg', fromId: myId, to: data.to, msgId: data.msgId }), ws);
       return;
     }
@@ -327,13 +440,19 @@ wss.on('connection', ws => {
 
   ws.on('close', () => {
     if (myId && clients.get(myId) === ws) {
+      if (users[myId]) {
+        users[myId].lastSeen = Date.now();
+        saveUserToDb(users[myId]);
+      }
       clients.delete(myId);
       broadcastUsers();
     }
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Сервер TurboGram запущен на порту ${PORT}`);
+initDatabase().then(() => {
+  server.listen(PORT, () => {
+    console.log(`Сервер TurboGram запущен на порту ${PORT}`);
+  });
 });
 
