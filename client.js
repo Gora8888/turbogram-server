@@ -468,27 +468,56 @@ function renderChatList() {
   const allowed = cid => !activeF || activeF.chatIds.includes(cid);
   const makeBadge = k => unreadCounts[k] ? `<span class="unread-badge">${unreadCounts[k]}</span>` : '';
 
-  if (allowed('saved') && !cleanQ) {
+  // Точные залитые SVG-иконки 1-в-1 как на референсах
+  const verifiedBadgeSvg = `<svg style="width:16px;height:16px;fill:#4ea4f6;vertical-align:-3px;margin-left:5px;flex-shrink:0" viewBox="0 0 24 24"><path d="M12 2l2.4 2.2 3.2-.4.8 3.1 2.9 1.4-1.2 3 1.2 3-2.9 1.4-.8 3.1-3.2-.4L12 22l-2.4-2.2-3.2.4-.8-3.1-2.9-1.4 1.2-3-1.2-3 2.9-1.4.8-3.1 3.2.4L12 2zm-1.2 13.4l5.4-5.4-1.4-1.4-4 4-2-2-1.4 1.4 3.4 3.4z"/></svg>`;
+  const archiveBoxSvg = `<svg style="width:26px;height:26px;fill:#fff" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v2c0 .7.4 1.4 1 1.7V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9.7c.6-.3 1-1 1-1.7V6c0-1.1-.9-2-2-2zm-5 10H9v-2h6v2zm5-6H4V6h16v2z"/></svg>`;
+  const bookmarkFillSvg = `<svg style="width:24px;height:24px;fill:#fff" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>`;
+  const planeFillSvg = `<svg style="width:26px;height:26px;fill:#fff;margin-right:2px" viewBox="0 0 24 24"><path d="M20.665 3.717l-17.73 6.837c-1.21.486-1.203 1.161-.222 1.462l4.552 1.42 10.532-6.645c.498-.303.953-.14.579.192l-8.533 7.701h-.002l.002.001-.314 4.692c.46 0 .663-.211.921-.46l2.211-2.15 4.599 3.397c.848.467 1.457.227 1.668-.785l3.019-14.228c.309-1.239-.473-1.8-1.282-1.434z"/></svg>`;
+
+  // 1. Архив чатов (с голубым кругом и двойным контуром вокруг как на скриншоте)
+  if (folder !== 'archive' && !cleanQ) {
+    const archUnread = archivedChats.reduce((s, id) => s + (unreadCounts[id] || 0), 0);
+    const archBadge = archUnread > 0 ? `<span class="unread-badge" style="background:#8e8e93">${archUnread}</span>` : '';
+    const archNames = archivedChats.map(id => {
+      if (id === 'service') return 'TurboGram';
+      const u = users.find(x => x.id === id);
+      const r = customRooms.find(x => x.id === id);
+      return u ? u.name : (r ? r.title : id);
+    }).join(', ');
+    list.innerHTML += `<div class="chat-item" onclick="setFolder('archive')"><div class="avatar" style="background:linear-gradient(180deg,#64b5f6,#2196f3);box-shadow:0 0 0 2px #000,0 0 0 3.5px rgba(100,181,246,0.55)">${archiveBoxSvg}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">Архив чатов</span><span class="chat-time">${archivedChats.length || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${archNames || 'Скрытые чаты'}</span>${archBadge}</div></div></div>`;
+  }
+
+  if (folder === 'archive') {
+    list.innerHTML += `<div class="chat-item" onclick="setFolder('all')" style="color:#4ea4f6;font-weight:600"><span>← Назад ко всем чатам</span></div>`;
+  }
+
+  const isVisible = cid => folder === 'archive' ? archivedChats.includes(cid) : (!archivedChats.includes(cid) && allowed(cid));
+
+  // 2. Избранное (голубой круг + белая залитая закладка)
+  if (isVisible('saved') && (!cleanQ || 'избранное'.includes(cleanQ))) {
     const last = (hist.saved || []).at(-1);
     const prev = last ? (last.voice ? 'Голосовое сообщение' : (last.file ? 'Медиафайл' : last.text)) : 'Сохраняйте заметки и файлы';
-    list.innerHTML += `<div class="chat-item ${chat === 'saved' ? 'active' : ''}" onclick="selectChat('saved','Избранное')"><div class="avatar" style="background:#3390ec">🔖</div><div class="chat-info"><div class="chat-top"><span class="chat-name">Избранное</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge('saved')}</div></div></div>`;
+    list.innerHTML += `<div class="chat-item ${chat === 'saved' ? 'active' : ''}" onclick="selectChat('saved','Избранное')"><div class="avatar" style="background:linear-gradient(180deg,#5eb5f7,#2b8ce6)">${bookmarkFillSvg}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">Избранное</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge('saved')}</div></div></div>`;
   }
 
-  if (allowed('general') && (!cleanQ || 'общий чат друзей'.includes(cleanQ))) {
-    const last = (hist.general || []).at(-1);
-    const prev = typingUsers.general ? `<span style="color:#3390ec">печатает...</span>` : (last ? `${last.fromName}: ${last.voice ? 'Голосовое' : (last.file ? 'Файл' : last.text)}` : 'Нет сообщений');
-        list.innerHTML += `<div class="chat-item ${chat === 'general' ? 'active' : ''}" onclick="selectChat('general','Общий чат друзей')"><div class="avatar">TG</div><div class="chat-info"><div class="chat-top"><span class="chat-name">Общий чат друзей</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge('general')}</div></div></div>`;
+  // 3. TurboGram (голубой круг + белый самолётик + синяя галочка)
+  if (isVisible('service') && (!cleanQ || 'turbogram'.includes(cleanQ))) {
+    const last = (hist.service || []).at(-1);
+    const prev = last ? last.text.replace(/\n/g, ' ') : 'Вход с нового устройства...';
+    list.innerHTML += `<div class="chat-item ${chat === 'service' ? 'active' : ''}" onclick="selectChat('service','TurboGram')" oncontextmenu="event.preventDefault();toggleArchiveChat('service')"><div class="avatar" style="background:linear-gradient(180deg,#5eb5f7,#2b8ce6)">${planeFillSvg}</div><div class="chat-info"><div class="chat-top"><span class="chat-name" style="display:flex;align-items:center">TurboGram${verifiedBadgeSvg}</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge('service')}</div></div></div>`;
   }
 
+  // 4. Созданные группы и каналы
   customRooms.forEach(r => {
-    if (!allowed(r.id) || (cleanQ && !r.title.toLowerCase().includes(cleanQ))) return;
+    if (!isVisible(r.id) || (cleanQ && !r.title.toLowerCase().includes(cleanQ))) return;
     const last = (hist[r.id] || []).at(-1);
     const prev = last ? `${last.fromName}: ${last.text || 'Медиа'}` : (r.kind === 'channel' ? 'Канал создан' : 'Группа создана');
-    list.innerHTML += `<div class="chat-item ${chat === r.id ? 'active' : ''}" onclick="selectChat('${r.id}','${r.title}')"><div class="avatar" style="background:linear-gradient(135deg,#34c759,#007aff)">${r.title.slice(0,1).toUpperCase()}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">${r.title}</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge(r.id)}</div></div></div>`;
+    list.innerHTML += `<div class="chat-item ${chat === r.id ? 'active' : ''}" onclick="selectChat('${r.id}','${r.title}')" oncontextmenu="event.preventDefault();toggleArchiveChat('${r.id}')"><div class="avatar" style="background:linear-gradient(135deg,#34c759,#007aff)">${r.title.slice(0,1).toUpperCase()}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">${r.title}</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge(r.id)}</div></div></div>`;
   });
 
+  // 5. Личные переписки и поиск по @username
   users.forEach(u => {
-    if (u.id === myId || !allowed(u.id)) return;
+    if (u.id === myId || !isVisible(u.id)) return;
     const hasHistory = (hist[u.id] && hist[u.id].length > 0) || chat === u.id;
     const matchesSearch = cleanQ.length >= 2 && ((u.username && u.username.toLowerCase().includes(cleanQ)) || u.name.toLowerCase().includes(cleanQ));
     if (!hasHistory && !matchesSearch) return;
@@ -496,7 +525,7 @@ function renderChatList() {
     const tag = u.username ? `@${u.username}` : '';
     const prev = typingUsers[u.id] ? `<span style="color:#3390ec">печатает...</span>` : (last ? (last.voice ? 'Голосовое сообщение' : (last.file ? 'Медиафайл' : last.text)) : (tag ? `${tag} • ${u.online ? 'в сети' : 'не в сети'}` : 'Нажмите, чтобы написать'));
     const ava = u.avatar ? `<img src="${u.avatar}">` : u.name.slice(0, 1).toUpperCase();
-    list.innerHTML += `<div class="chat-item ${chat === u.id ? 'active' : ''}" onclick="selectChat('${u.id}','${u.name}')"><div class="avatar">${ava}${u.online ? '<div class="online-dot"></div>' : ''}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">${u.name} ${u.status || ''}</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge(u.id)}</div></div></div>`;
+    list.innerHTML += `<div class="chat-item ${chat === u.id ? 'active' : ''}" onclick="selectChat('${u.id}','${u.name}')" oncontextmenu="event.preventDefault();toggleArchiveChat('${u.id}')"><div class="avatar">${ava}${u.online ? '<div class="online-dot"></div>' : ''}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">${u.name} ${u.status || ''}</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge(u.id)}</div></div></div>`;
   });
 }
 
