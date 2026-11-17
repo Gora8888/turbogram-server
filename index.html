@@ -58,7 +58,8 @@
     .chat-bottom { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
     .chat-preview { font-size: 14.5px; color: #8e8e93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
     .unread-badge { background: #3390ec; color: #fff; font-size: 13px; font-weight: 700; min-width: 22px; height: 22px; border-radius: 11px; padding: 0 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); position: relative; max-width: 100vw; overflow-x: hidden; }
+
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); position: relative; max-width: 100vw; overflow-x: hidden; }
     .chat-header { padding: 8px 12px; background: var(--bg-side); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; min-height: 56px; z-index: 20; }
     .header-left { display: flex; align-items: center; gap: 10px; min-width: 0; cursor: pointer; }
     .mobile-back-btn { display: none; background: transparent; border: none; color: #3390ec; font-size: 26px; cursor: pointer; padding-right: 4px; line-height: 1; }
@@ -78,7 +79,7 @@
 
     .pin-bar { background: var(--bg-glass); backdrop-filter: blur(18px); padding: 7px 14px; border-bottom: 1px solid var(--border); display: none; justify-content: space-between; align-items: center; font-size: 13px; color: #3390ec; z-index: 15; }
     .call-bar { background: #1c2c40; padding: 10px 14px; display: none; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--border); z-index: 25; }
-    .video-grid { display: flex; gap: 10px; justify-content: center; }
+        .video-grid { display: flex; gap: 10px; justify-content: center; }
     .video-grid video { width: 160px; height: 110px; background: #000; border-radius: 12px; object-fit: cover; display: none; }
     .hangup-btn { background: #ff3b30; border: none; color: #fff; padding: 6px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; }
 
@@ -125,7 +126,8 @@
     .ios-pill-tab.active { background: rgba(255, 255, 255, 0.16); color: #fff; }
     .ios-pill-badge { background: rgba(255, 255, 255, 0.2); color: #fff; font-size: 11.5px; padding: 1px 6px; border-radius: 10px; }
     .folder-chat-pick { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: rgba(255, 255, 255, 0.06); border-radius: 12px; margin-bottom: 6px; font-size: 15px; cursor: pointer; }
-        #settingsModal { background: #000000 !important; padding: 0 !important; align-items: stretch !important; z-index: 35 !important; }
+
+    #settingsModal { background: #000000 !important; padding: 0 !important; align-items: stretch !important; z-index: 35 !important; }
     #settingsModal .modal-box { width: 100% !important; max-width: 480px !important; height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; background: #000000 !important; border: none !important; box-shadow: none !important; padding: calc(max(50px, env(safe-area-inset-top)) + 6px) 16px 100px !important; margin: 0 auto; overflow-y: auto; }
     .ios-set-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .ios-set-ava-wrap { width: 98px; height: 98px; border-radius: 50%; background: linear-gradient(135deg, #5ac8fa, #007aff); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; overflow: hidden; cursor: pointer; }
@@ -142,7 +144,7 @@
     .ios-row-val { font-size: 15px; color: #8e8e93; margin-right: 4px; }
     .ios-chev { width: 16px; height: 16px; stroke: #636366; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
     .ios-subpanel { display: none; background: #141a22; padding: 14px; border-top: 0.5px solid rgba(255,255,255,0.08); text-align: left; }
-    .ios-subpage { position: fixed; inset: 0; background: #000000; z-index: 60; display: none; flex-direction: column; overflow-y: auto; padding: calc(max(50px, env(safe-area-inset-top)) + 54px) 16px 90px; }
+        .ios-subpage { position: fixed; inset: 0; background: #000000; z-index: 60; display: none; flex-direction: column; overflow-y: auto; padding: calc(max(50px, env(safe-area-inset-top)) + 54px) 16px 90px; }
     .ios-subpage.open { display: flex; }
     .ios-subpage-inner { width: 100%; max-width: 480px; margin: 0 auto; }
     .ios-sub-header { position: fixed; top: max(50px, env(safe-area-inset-top)); left: 0; right: 0; height: 44px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; z-index: 65; pointer-events: none; }
@@ -189,7 +191,7 @@
     body.is-mobile .chat-header { position: fixed !important; top: max(54px, env(safe-area-inset-top)) !important; left: 0 !important; right: 0 !important; background: transparent !important; border-bottom: none !important; padding: 0 12px !important; height: 44px !important; z-index: 90 !important; gap: 8px !important; }
     body.is-mobile .messages { padding-top: calc(max(54px, env(safe-area-inset-top)) + 56px) !important; }
     body.is-mobile .ios-back-pill, body.is-mobile .ios-right-avatar-pill { display: flex !important; }
-    body.is-mobile .mobile-back-btn, body.is-mobile .header-left .header-avatar, body.is-mobile .header-actions { display: none !important; }
+    body.is-mobile .mobile-back-btn, body.is-mobile .header-left .header-avatar, body:not(.force-desktop) .header-actions { display: none !important; }
     body.is-mobile .header-left { flex: 1; height: 44px; padding: 0 16px; border-radius: 22px; background: var(--bg-glass); backdrop-filter: blur(22px); border: 1px solid rgba(255, 255, 255, 0.14); justify-content: center; text-align: center; }
     body.is-mobile .msg { max-width: 84%; }
     body.is-mobile .mobile-bottom-nav { display: flex; position: fixed; left: 16px; right: 16px; bottom: 6px; height: 54px; border-radius: 27px; background: rgba(28, 36, 47, 0.84); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.14); z-index: 40; justify-content: space-around; align-items: center; }
@@ -200,10 +202,7 @@
 </head>
 <body>
   <div class="context-menu" id="msgContextMenu"></div>
-
-  <div class="modal-overlay" id="storyCreateModal" style="display: none;" onclick="if(event.target===this)this.style.display='none'">
-    <div class="modal-box">
-        <div class="modal-overlay" id="storyCreateModal" style="display: none;" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-overlay" id="storyCreateModal" style="display: none;" onclick="if(event.target===this)this.style.display='none'">
     <div class="modal-box">
       <h3 style="margin-bottom: 14px;">Новая история</h3>
       <input type="file" id="storyFileInput" accept="image/*" style="display: none;" onchange="previewStoryImg(event)">
@@ -271,9 +270,7 @@
     <div class="modal-box" style="max-width: 340px;">
       <h3 style="margin-bottom: 6px; font-size: 20px;">Ваш QR-код</h3>
       <p id="qrUserSub" style="color: #8e8e93; font-size: 13.5px; margin-bottom: 16px;">@username</p>
-      <div style="background: #fff; padding: 16px; border-radius: 22px; display: inline-block; margin-bottom: 16px;">
-        <canvas id="qrCodeCanvas" width="210" height="210" style="display: block;"></canvas>
-      </div>
+      <div id="qrCodeWrap" style="background: #fff; padding: 16px; border-radius: 22px; display: inline-block; margin-bottom: 16px;"></div>
       <button type="button" class="btn-primary" style="margin-bottom: 8px;" onclick="copyProfileLink()">Скопировать ссылку</button>
       <button type="button" class="btn-primary" style="background: var(--bg-input);" onclick="$('qrModal').style.display='none'">Закрыть</button>
     </div>
@@ -285,7 +282,6 @@
       <p style="color: #8e8e93; font-size: 13.5px; margin-bottom: 16px;">Наведите камеру на QR-код входа на другом устройстве или на QR-код профиля.</p>
       <div style="position: relative; width: 260px; height: 260px; margin: 0 auto 18px; border-radius: 26px; overflow: hidden; border: 3px solid #4ea4f6; background: #111;">
         <video id="qrVideo" playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
-        <canvas id="qrScanCanvas" style="display: none;"></canvas>
       </div>
       <button type="button" class="btn-primary" style="background: rgba(255,255,255,0.14);" onclick="closeDeviceScanner()">Отмена</button>
     </div>
@@ -321,9 +317,9 @@
       <div id="stepRegister" style="display: none;">
         <input type="text" class="auth-input" id="authFirstName" placeholder="Имя (обязательно)">
         <input type="text" class="auth-input" id="authLastName" placeholder="Фамилия (необязательно)">
-                <input type="text" class="auth-input" id="authUsername" placeholder="Придумайте @username">
+        <input type="text" class="auth-input" id="authUsername" placeholder="Придумайте @username">
         <input type="password" class="auth-input" id="authPassword" placeholder="Облачный пароль (по желанию)">
-        <button type="button" class="btn-primary" onclick="completeRegistration()">НАЧАТЬ ОБЩЕНИЕ</button>
+                <button type="button" class="btn-primary" onclick="completeRegistration()">Начать общение</button>
       </div>
 
       <div class="auth-back" id="authBack" onclick="resetAuthStep()">← Изменить номер</div>
@@ -404,8 +400,7 @@
       </div>
     </div>
   </div>
-
-  <div class="ios-subpage" id="pageProfile">
+    <div class="ios-subpage" id="pageProfile">
     <div class="ios-sub-header">
       <button type="button" class="ios-icon-circle" onclick="closeIosPage('pageProfile')"><svg class="svg-ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
       <div class="ios-sub-title">Мой профиль</div>
@@ -448,13 +443,13 @@
       <div class="ios-list-group">
         <div class="ios-list-row">
           <div style="flex:1"><div style="font-size:16px;font-weight:600">Новые</div><div style="font-size:13px;color:#8e8e93">Чаты с новыми сообщениями</div></div>
-          <button type="button" style="background:#4ea4f6;color:#fff;border:none;padding:6px 14px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer" onclick="createPresetFolder('Новые','🔥')">СОЗДАТЬ</button>
+          <button type="button" style="background:#4ea4f6;color:#fff;border:none;padding:6px 14px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer" onclick="createPresetFolder('Новые','🔥')">Создать</button>
         </div>
         <div class="ios-list-row">
           <div style="flex:1"><div style="font-size:16px;font-weight:600">Личные</div><div style="font-size:13px;color:#8e8e93">Сообщения из личных чатов</div></div>
-          <button type="button" style="background:#4ea4f6;color:#fff;border:none;padding:6px 14px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer" onclick="createPresetFolder('Личные','❤️')">СОЗДАТЬ</button>
+          <button type="button" style="background:#4ea4f6;color:#fff;border:none;padding:6px 14px;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer" onclick="createPresetFolder('Личные','❤️')">Создать</button>
         </div>
-              </div>
+      </div>
     </div>
   </div>
 
@@ -485,8 +480,7 @@
       <div class="ios-group-card" id="accountsList"></div>
     </div>
   </div>
-
-  <div class="ios-subpage" id="pageNotif">
+    <div class="ios-subpage" id="pageNotif">
     <div class="ios-sub-header">
       <button type="button" class="ios-icon-circle" onclick="closeIosPage('pageNotif')"><svg class="svg-ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
       <div class="ios-sub-title">Уведомления</div>
@@ -534,7 +528,8 @@
       </div>
     </div>
   </div>
-        <div class="ios-subpage" id="pagePrivacy">
+
+  <div class="ios-subpage" id="pagePrivacy">
     <div class="ios-sub-header">
       <button type="button" class="ios-icon-circle" onclick="closeIosPage('pagePrivacy')"><svg class="svg-ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
       <div class="ios-sub-title">Конфиденциальность</div>
@@ -568,7 +563,7 @@
         <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Время захода</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
         <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Фотографии профиля</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
         <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Пересылка сообщений</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
-        <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Звонки</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+                <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Звонки</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
         <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Голосовые сообщения</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
         <div class="ios-list-row" onclick="cyclePriv(this)"><span class="ios-row-title">Приглашения</span><span class="ios-row-val">Все</span><svg class="ios-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
       </div>
@@ -630,14 +625,13 @@
       </div>
     </div>
   </div>
-
-  <div class="folders-bar">
+    <div class="folders-bar">
     <div id="desktopFoldersList" style="display: flex; flex-direction: column; gap: 6px; align-items: center; width: 100%;"></div>
     <div class="folder-item" onclick="openCreateFolderModal()"><span>+</span><span>Папка</span></div>
     <div class="bottom-tools">
       <div class="folder-item" onclick="openSettings()"><span>⚙️</span><span>Настройки</span></div>
       <div class="folder-item" onclick="openSettings()">
-                <div class="my-avatar-circle" id="myAvatarBox">?</div>
+        <div class="my-avatar-circle" id="myAvatarBox">?</div>
         <span id="myProfileName" style="font-weight: 400;">Профиль</span>
       </div>
     </div>
@@ -707,13 +701,15 @@
   </div>
 
   <audio id="remoteAudio" autoplay></audio>
-  <script src="/client.js?v=50"></script>
+  <script src="/client.js?v=55"></script>
   <script>
     if (localStorage.getItem('tg_active_id')) {
       const ao = document.getElementById('authOverlay');
       if (ao) ao.style.setProperty('display', 'none', 'important');
     }
-    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(r => r.forEach(x => x.unregister()));
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+    }
     window.addEventListener('scroll', () => window.scrollTo(0, 0));
     document.addEventListener('focusout', () => setTimeout(() => window.scrollTo(0, 0), 50));
 
@@ -770,7 +766,7 @@
       const val = row.querySelector('.ios-row-val');
       if (!val) return;
       const order = ['1 месяц', '3 месяца', '6 месяцев', '12 месяцев', '24 месяца'];
-      val.textContent = order[(order.indexOf(val.textContent) + 1) % order.length];
+            val.textContent = order[(order.indexOf(val.textContent) + 1) % order.length];
     }
     function pickThemeCard(val, el) {
       document.querySelectorAll('.ios-tcard').forEach(c => c.classList.remove('active'));
@@ -778,21 +774,13 @@
       if (document.getElementById('themeSelect')) document.getElementById('themeSelect').value = val;
       if (typeof applyTheme === 'function') applyTheme(val);
     }
-      function openMyQr() {
-    const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : 'TurboGram');
-    const link = location.origin + '/?user=' + encodeURIComponent(tag);
-    document.getElementById('qrUserSub').textContent = tag;
-    const box = document.getElementById('qrCodeCanvas') ? document.getElementById('qrCodeCanvas').parentElement : document.getElementById('qrBoxDiv').parentElement;
-    box.innerHTML = '<div id="qrBoxDiv" style="width:210px;height:210px;"></div>';
-    if (typeof QRCode !== 'undefined') {
-      new QRCode(document.getElementById('qrBoxDiv'), { text: link, width: 210, height: 210 });
-    } else {
-      box.innerHTML = `<img src="https://qrserver.com{encodeURIComponent(link)}" style="width:210px;height:210px;display:block">`;
+    function openMyQr() {
+      const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : 'TurboGram');
+      const link = location.origin + '/?user=' + encodeURIComponent(tag);
+      document.getElementById('qrUserSub').textContent = tag;
+      document.getElementById('qrCodeWrap').innerHTML = `<img src="https://qrserver.com{encodeURIComponent(link)}" style="width:210px;height:210px;display:block" alt="QR">`;
+      document.getElementById('qrModal').style.display = 'flex';
     }
-    document.getElementById('qrModal').style.display = 'flex';
-  }
-
-    
     function copyProfileLink() {
       const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : '');
       const link = location.origin + '/?user=' + encodeURIComponent(tag);
@@ -812,22 +800,23 @@
     async function openDeviceScanner() {
       const modal = document.getElementById('scannerModal');
       const video = document.getElementById('qrVideo');
-      const canvas = document.getElementById('qrScanCanvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       modal.style.display = 'flex';
       try {
         qrCamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         video.srcObject = qrCamStream;
         await video.play();
-        qrScanTimer = setInterval(() => {
-          if (video.readyState !== video.HAVE_ENOUGH_DATA || typeof jsQR === 'undefined') return;
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imgData.data, imgData.width, imgData.height);
-          if (code && code.data) { closeDeviceScanner(); handleScannedQr(code.data); }
-        }, 250);
+        if ('BarcodeDetector' in window) {
+          const detector = new BarcodeDetector({ formats: ['qr_code'] });
+          qrScanTimer = setInterval(async () => {
+            try {
+              const codes = await detector.detect(video);
+              if (codes.length && codes.rawValue) {
+                closeDeviceScanner();
+                handleScannedQr(codes.rawValue);
+              }
+            } catch (e) {}
+          }, 300);
+        }
       } catch (err) {
         closeDeviceScanner();
         alert('Не удалось открыть камеру: ' + err.message);
@@ -840,7 +829,7 @@
     }
     function handleScannedQr(raw) {
       if (raw.includes('?user=')) {
-        const uname = decodeURIComponent(raw.split('?user=')[1]).replace(/^@/, '');
+        const uname = decodeURIComponent(raw.split('?user=')).replace(/^@/, '');
         document.getElementById('settingsModal').style.display = 'none';
         closeIosPage('pageDevices');
         const inp = document.getElementById('searchInput');
@@ -867,7 +856,7 @@
 
 
 
-        
+
 
 
 
