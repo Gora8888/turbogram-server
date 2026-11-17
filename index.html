@@ -713,7 +713,7 @@
       const ao = document.getElementById('authOverlay');
       if (ao) ao.style.setProperty('display', 'none', 'important');
     }
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(r => r.forEach(x => x.unregister()));
     window.addEventListener('scroll', () => window.scrollTo(0, 0));
     document.addEventListener('focusout', () => setTimeout(() => window.scrollTo(0, 0), 50));
 
