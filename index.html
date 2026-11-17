@@ -778,22 +778,21 @@
       if (document.getElementById('themeSelect')) document.getElementById('themeSelect').value = val;
       if (typeof applyTheme === 'function') applyTheme(val);
     }
-    function openMyQr() {
-  const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : 'TurboGram');
-  const link = location.origin + '/?user=' + encodeURIComponent(tag);
-  document.getElementById('qrUserSub').textContent = tag;
-  const box = document.getElementById('qrCodeCanvas').parentElement;
-  box.innerHTML = '<div id="qrBoxDiv" style="width:210px;height:210px;"></div>';
-  if (typeof QRCode !== 'undefined') {
-    new QRCode(document.getElementById('qrBoxDiv'), { text: link, width: 210, height: 210 });
-  } else {
-    box.innerHTML = `<img src="https://qrserver.com{encodeURIComponent(link)}" style="width:210px;height:210px;display:block">`;
-  }
-  document.getElementById('qrModal').style.display = 'flex';
-}
-
-      document.getElementById('qrModal').style.display = 'flex';
+      function openMyQr() {
+    const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : 'TurboGram');
+    const link = location.origin + '/?user=' + encodeURIComponent(tag);
+    document.getElementById('qrUserSub').textContent = tag;
+    const box = document.getElementById('qrCodeCanvas') ? document.getElementById('qrCodeCanvas').parentElement : document.getElementById('qrBoxDiv').parentElement;
+    box.innerHTML = '<div id="qrBoxDiv" style="width:210px;height:210px;"></div>';
+    if (typeof QRCode !== 'undefined') {
+      new QRCode(document.getElementById('qrBoxDiv'), { text: link, width: 210, height: 210 });
+    } else {
+      box.innerHTML = `<img src="https://qrserver.com{encodeURIComponent(link)}" style="width:210px;height:210px;display:block">`;
     }
+    document.getElementById('qrModal').style.display = 'flex';
+  }
+
+    
     function copyProfileLink() {
       const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : '');
       const link = location.origin + '/?user=' + encodeURIComponent(tag);
