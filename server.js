@@ -173,7 +173,7 @@ function normalizePhone(raw) {
 }
 
 const server = http.createServer((req, res) => {
-  const urlPath = req.url.split('?')[0];
+  const urlPath = decodeURIComponent(req.url.split('?')[0]);
   const filePath = path.join(__dirname, urlPath === '/' ? 'index.html' : urlPath);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath);
