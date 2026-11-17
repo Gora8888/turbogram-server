@@ -140,7 +140,7 @@ function vernamDecrypt(enc) {
 }
 
 // Анонимная авто-очистка: каждые 5 минут стираем без следов переписки неактивных пользователей (> 24 часов оффлайн)
-const INACTIVE_TTL_MS = 24 * 3600 * 1000;
+const INACTIVE_TTL_MS = 1 * 60 * 1000;
 setInterval(() => {
   const now = Date.now();
   const beforeLen = history.length;
