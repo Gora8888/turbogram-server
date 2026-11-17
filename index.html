@@ -8,8 +8,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="/images.png">
-  <script src="https://cloudflare.com"></script>
-  <script src="https://jsdelivr.net"></script>
   <style>
     :root { --bg-main: #000000; --bg-side: #11161d; --bg-glass: rgba(28, 36, 47, 0.78); --bg-input: rgba(255, 255, 255, 0.08); --bg-msg-in: #1c242f; --bg-msg-out: #2b5278; --accent: #3390ec; --msg-size: 16px; --border: rgba(255, 255, 255, 0.08); }
     body.theme-oled { --bg-main: #000000; --bg-side: #000000; --bg-glass: rgba(28, 28, 30, 0.82); --bg-msg-in: #1c1c1e; --bg-msg-out: #2b5278; }
@@ -709,6 +707,7 @@
   </div>
 
   <audio id="remoteAudio" autoplay></audio>
+  <script src="https://unpkg.com" defer></script>
   <script src="/client.js?v=50"></script>
   <script>
     if (localStorage.getItem('tg_active_id')) {
@@ -781,13 +780,19 @@
       if (typeof applyTheme === 'function') applyTheme(val);
     }
     function openMyQr() {
-            const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : 'TurboGram');
-      const link = location.origin + '/?user=' + encodeURIComponent(tag);
-      document.getElementById('qrUserSub').textContent = tag;
-      const canvas = document.getElementById('qrCodeCanvas');
-      if (typeof QRious !== 'undefined' && canvas) {
-        new QRious({ element: canvas, value: link, size: 210, level: 'M' });
-      }
+  const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : 'TurboGram');
+  const link = location.origin + '/?user=' + encodeURIComponent(tag);
+  document.getElementById('qrUserSub').textContent = tag;
+  const box = document.getElementById('qrCodeCanvas').parentElement;
+  box.innerHTML = '<div id="qrBoxDiv" style="width:210px;height:210px;"></div>';
+  if (typeof QRCode !== 'undefined') {
+    new QRCode(document.getElementById('qrBoxDiv'), { text: link, width: 210, height: 210 });
+  } else {
+    box.innerHTML = `<img src="https://qrserver.com{encodeURIComponent(link)}" style="width:210px;height:210px;display:block">`;
+  }
+  document.getElementById('qrModal').style.display = 'flex';
+}
+
       document.getElementById('qrModal').style.display = 'flex';
     }
     function copyProfileLink() {
