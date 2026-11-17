@@ -208,7 +208,8 @@
     .ios-tcard { flex: 1; height: 96px; border-radius: 14px; border: 2px solid transparent; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; background: #121820; }
     .ios-tcard.active { border-color: #4ea4f6; }
   </style>
-  <script src="https://jsdelivr.net"></script>
+  <script src="https://cloudflare.com"></script>
+<script src="https://jsdelivr.net"></script>
 </head>
 <body>
     <div class="context-menu" id="msgContextMenu"></div>
@@ -282,8 +283,19 @@
       <h3 style="margin-bottom: 6px; font-size: 20px;">Ваш QR-код</h3>
       <p id="qrUserSub" style="color: #8e8e93; font-size: 13.5px; margin-bottom: 16px;">@username</p>
       <div style="background: #fff; padding: 16px; border-radius: 22px; display: inline-block; margin-bottom: 16px;">
-        <img id="qrCodeImg" src="" alt="QR" style="width: 210px; height: 210px; display: block;">
-      </div>
+       <canvas id="qrCodeCanvas" width="210" height="210" style="display: block;"></canvas>
+     </div>
+      <div class="modal-overlay" id="scannerModal" style="display: none; z-index: 130; background: #000;">
+  <div class="modal-box" style="background: transparent; border: none; box-shadow: none; max-width: 380px;">
+    <h3 style="margin-bottom: 6px; font-size: 20px;">Сканируйте QR-код</h3>
+    <p style="color: #8e8e93; font-size: 13.5px; margin-bottom: 16px;">Наведите камеру на QR-код входа на другом устройстве или на QR-код профиля.</p>
+    <div style="position: relative; width: 260px; height: 260px; margin: 0 auto 18px; border-radius: 26px; overflow: hidden; border: 3px solid #4ea4f6; background: #111;">
+      <video id="qrVideo" playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+      <canvas id="qrScanCanvas" style="display: none;"></canvas>
+    </div>
+    <button type="button" class="btn-primary" style="background: rgba(255,255,255,0.14);" onclick="closeDeviceScanner()">Отмена</button>
+  </div>
+</div>
       <button type="button" class="btn-primary" style="margin-bottom: 8px;" onclick="copyProfileLink()">Скопировать ссылку</button>
       <button type="button" class="btn-primary" style="background: var(--bg-input);" onclick="$('qrModal').style.display='none'">Закрыть</button>
     </div>
@@ -814,6 +826,86 @@
       if (document.getElementById('themeSelect')) document.getElementById('themeSelect').value = val;
       if (typeof applyTheme === 'function') applyTheme(val);
     }
+        function openMyQr() {
+      const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : 'TurboGram');
+      const link = location.origin + '/?user=' + encodeURIComponent(tag);
+      document.getElementById('qrUserSub').textContent = tag;
+      const canvas = document.getElementById('qrCodeCanvas');
+      if (typeof QRious !== 'undefined' && canvas) {
+        new QRious({ element: canvas, value: link, size: 210, level: 'M' });
+      }
+      document.getElementById('qrModal').style.display = 'flex';
+    }
+
+    let qrCamStream = null;
+    let qrScanTimer = null;
+
+    async function openDeviceScanner() {
+      const modal = document.getElementById('scannerModal');
+      const video = document.getElementById('qrVideo');
+      const canvas = document.getElementById('qrScanCanvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      modal.style.display = 'flex';
+
+      try {
+        qrCamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = qrCamStream;
+        await video.play();
+
+        qrScanTimer = setInterval(() => {
+          if (video.readyState !== video.HAVE_ENOUGH_DATA || typeof jsQR === 'undefined') return;
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imgData.data, imgData.width, imgData.height);
+
+          if (code && code.data) {
+            closeDeviceScanner();
+            handleScannedQr(code.data);
+          }
+        }, 250);
+      } catch (err) {
+        closeDeviceScanner();
+        alert('Не удалось открыть камеру: ' + err.message);
+      }
+    }
+
+    function closeDeviceScanner() {
+      if (qrScanTimer) { clearInterval(qrScanTimer); qrScanTimer = null; }
+      if (qrCamStream) { qrCamStream.getTracks().forEach(t => t.stop()); qrCamStream = null; }
+      document.getElementById('scannerModal').style.display = 'none';
+    }
+
+    function handleScannedQr(raw) {
+      if (raw.includes('?user=')) {
+        const uname = decodeURIComponent(raw.split('?user=')[1]).replace(/^@/, '');
+        document.getElementById('settingsModal').style.display = 'none';
+        if (typeof closeIosPage === 'function') closeIosPage('pageDevices');
+        const inp = document.getElementById('searchInput');
+        if (inp) { inp.value = '@' + uname; if (typeof renderChatList === 'function') renderChatList(); }
+        alert('Найден пользователь: @' + uname);
+      } else if (raw.startsWith('tg_login:')) {
+        const token = raw.replace('tg_login:', '');
+        if (typeof ws !== 'undefined' && ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ type: 'qr_approve_login', token }));
+          alert('Вход на новом устройстве подтверждён!');
+        }
+      } else {
+        alert('Распознан QR-код: ' + raw);
+      }
+    }
+
+    window.addEventListener('load', () => {
+      const p = new URLSearchParams(location.search);
+      const targetUser = p.get('user');
+      if (targetUser) {
+        setTimeout(() => {
+          const inp = document.getElementById('searchInput');
+          if (inp) { inp.value = targetUser; if (typeof renderChatList === 'function') renderChatList(); }
+        }, 1200);
+      }
+    });
   </script>
 </body>
 </html>
