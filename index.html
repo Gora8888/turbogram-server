@@ -751,13 +751,6 @@
       document.querySelectorAll('.ios-subpanel').forEach(p => { p.style.display = 'none'; });
       if (!isOpen) el.style.display = 'block';
     }
-    function openMyQr() {
-      const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : 'TurboGram');
-      const link = location.origin + '/?user=' + encodeURIComponent(tag);
-      document.getElementById('qrUserSub').textContent = tag;
-      document.getElementById('qrCodeImg').src = 'https://qrserver.com' + encodeURIComponent(link);
-      document.getElementById('qrModal').style.display = 'flex';
-    }
     function copyProfileLink() {
       const tag = (typeof myUname !== 'undefined' && myUname) ? '@' + myUname : (typeof myId !== 'undefined' ? myId : '');
       const link = location.origin + '/?user=' + encodeURIComponent(tag);
