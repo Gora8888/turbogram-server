@@ -221,6 +221,8 @@ function openPeerProfile() {
   $('peerModalStatus').textContent = u.online ? 'в сети' : 'был(а) недавно';
   $('peerModalAvatar').innerHTML = u.avatar ? `<img src="${u.avatar}">` : u.name.slice(0, 1).toUpperCase();
   $('peerProfileModal').style.display = 'flex';
+  if ($('btnToggleArchive')) $('btnToggleArchive').textContent = archivedChats.includes(chat) ? 'Вернуть из архива' : 'В архив';
+
 }
 
 function openSettings() {
