@@ -4,7 +4,7 @@ let enteredId = '', myId = '', myName = '', myEmail = '', myUname = '', myStatus
 let chat = 'saved', folder = 'all', users = [], pc = null, stream = null, partner = null, replyTo = null;
 let mediaRec = null, audioChunks = [], isRecording = false, typingTimer = null;
 let allStories = [], customRooms = [], draftStoryImg = '';
-const hist = { saved: [], general: [] };
+const hist = { saved: [], service: [] };
 const unreadCounts = {};
 const typingUsers = {};
 
@@ -15,6 +15,7 @@ let savedAccounts = JSON.parse(localStorage.getItem('tg_accounts') || '[]');
 let activeAccountId = localStorage.getItem('tg_active_id') || '';
 let customFolders = JSON.parse(localStorage.getItem('tg_custom_folders') || '[]');
 let archivedChats = JSON.parse(localStorage.getItem('tg_archived_chats') || '[]');
+
 function toggleArchiveChat(cid) {
   if (archivedChats.includes(cid)) archivedChats = archivedChats.filter(x => x !== cid);
   else archivedChats.push(cid);
@@ -89,7 +90,6 @@ function loadSavedUiSettings() {
   if (saved.fontSz) { applyFontSize(saved.fontSz); if ($('fontSizeSelect')) $('fontSizeSelect').value = saved.fontSz; }
 }
 loadSavedUiSettings();
-
 if ($('countryCodeSelect')) {
   $('countryCodeSelect').addEventListener('change', e => {
     $('countryPrefixDisplay').value = e.target.value;
@@ -151,6 +151,7 @@ function resetAuthStep() {
   $('authSubtitle').textContent = 'Проверьте код страны и введите свой номер телефона.';
   $('authError').textContent = '';
 }
+
 function bindGmailAccount() {
   const email = $('bindGmailInput').value.trim();
   if (!email || !email.includes('@')) return alert('Введите корректный адрес Gmail!');
@@ -179,7 +180,7 @@ function openStoryCreator() {
 }
 
 function previewStoryImg(e) {
-  const f = e.target.files.item(0); if (!f) return;
+  const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = ev => { draftStoryImg = ev.target.result; $('storyPreviewImg').src = draftStoryImg; $('storyPreviewImg').style.display = 'block'; };
   r.readAsDataURL(f);
@@ -221,29 +222,20 @@ function createRoomPrompt(kind) {
 }
 
 function openPeerProfile() {
-  if (chat === 'saved' || chat === 'general' || chat.startsWith('gr_') || chat.startsWith('ch_')) return;
+  if (chat === 'saved' || chat === 'service' || chat.startsWith('gr_') || chat.startsWith('ch_')) return;
   const u = users.find(x => x.id === chat);
   if (!u) return;
   $('peerModalName').textContent = `${u.name} ${u.status || ''}`;
   $('peerModalUser').textContent = u.username ? `@${u.username}` : u.id;
   $('peerModalStatus').textContent = u.online ? 'в сети' : 'был(а) недавно';
   $('peerModalAvatar').innerHTML = u.avatar ? `<img src="${u.avatar}">` : u.name.slice(0, 1).toUpperCase();
-  $('peerProfileModal').style.display = 'flex';
   if ($('btnToggleArchive')) $('btnToggleArchive').textContent = archivedChats.includes(chat) ? 'Вернуть из архива' : 'В архив';
-
-}
-
-function toggleSetSub(id) {
-  const el = $(id);
-  if (!el) return;
-  const wasOpen = el.classList.contains('open');
-  document.querySelectorAll('.ios-subpanel').forEach(p => p.classList.remove('open'));
-  if (!wasOpen) el.classList.add('open');
+  $('peerProfileModal').style.display = 'flex';
 }
 
 function openSettings() {
   $('editNameInput').value = myName;
-  if ($('iosSetBigName')) $('iosSetBigName').textContent = myName;
+  if ($('iosSetBigName')) $('iosSetBigName').textContent = myName || 'Профиль';
   if ($('editUsernameInput')) $('editUsernameInput').value = myUname ? '@' + myUname : '';
   if ($('editPassInput')) $('editPassInput').value = '';
   $('editStatusInput').value = myStatus;
@@ -255,20 +247,11 @@ function openSettings() {
     if ($('bindGmailInput')) $('bindGmailInput').value = myEmail;
   }
   renderAccountsList();
-  $('settingsModal').style.display = 'flex';
-}
-
-  renderAccountsList();
   document.querySelectorAll('.m-nav-item').forEach(el => el.classList.remove('active'));
   const navBtns = document.querySelectorAll('.m-nav-item');
-  if (navBtns.at(-1)) navBtns.at(-1).classList.add('active');
+  if (navBtns.length) navBtns[navBtns.length - 1].classList.add('active');
   $('settingsModal').style.display = 'flex';
 }
-
-  renderAccountsList();
-  $('settingsModal').style.display = 'flex';
-}
-
 function saveAllSettings() {
   const n = $('editNameInput').value.trim();
   const u = $('editUsernameInput') ? $('editUsernameInput').value.trim().replace(/^@/, '').toLowerCase() : myUname;
@@ -278,15 +261,14 @@ function saveAllSettings() {
   const wall = $('wallSelect') ? $('wallSelect').value : 'none';
   const fontSz = $('fontSizeSelect').value;
 
-  if (n) { myName = n; $('myProfileName').textContent = myName.slice(0, 8); }
+  if (n) { myName = n; $('myProfileName').textContent = myName.slice(0, 8); if ($('iosSetBigName')) $('iosSetBigName').textContent = myName; }
   myUname = u; myStatus = st;
 
   applyTheme(theme); applyWallpaper(wall); applyFontSize(fontSz);
   localStorage.setItem('tg_ui_settings', JSON.stringify({ theme, wall, fontSz }));
 
   ws.send(JSON.stringify({ type: 'update_profile', name: myName, username: myUname, password: pw, status: myStatus }));
-  $('settingsModal').style.display = 'none';
-  alert('Настройки успешно сохранены!');
+  alert('Настройки сохранены!');
 }
 
 function renderAccountsList() {
@@ -297,7 +279,7 @@ function renderAccountsList() {
     box.innerHTML += `<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.06);padding:9px 12px;border-radius:12px;cursor:pointer;border:1px solid ${isCur ? '#3390ec' : 'transparent'}" onclick="switchAccount('${acc.id}')"><span style="font-size:14px">${acc.name} <span style="color:#8e8e93">(${acc.id})</span></span><span style="color:${isCur ? '#34c759' : '#3390ec'};font-size:13px">${isCur ? 'Активен' : 'Войти'}</span></div>`;
   });
   if (savedAccounts.length < 3) {
-    box.innerHTML += `<button class="btn-primary" style="background:transparent;border:1px dashed #3390ec;color:#3390ec;padding:9px;font-size:14px" onclick="addNewAccount()">+ Добавить аккаунт (${savedAccounts.length}/3)</button>`;
+    box.innerHTML += `<button type="button" class="btn-primary" style="background:transparent;border:1px dashed #3390ec;color:#3390ec;padding:9px;font-size:14px" onclick="addNewAccount()">+ Добавить аккаунт (${savedAccounts.length}/3)</button>`;
   }
 }
 
@@ -306,12 +288,12 @@ function addNewAccount() { $('settingsModal').style.display = 'none'; resetAuthS
 function removeSavedAccount(id) {
   savedAccounts = savedAccounts.filter(a => a.id !== id);
   localStorage.setItem('tg_accounts', JSON.stringify(savedAccounts));
-  if (activeAccountId === id) { activeAccountId = savedAccounts.at(0)?.id || ''; localStorage.setItem('tg_active_id', activeAccountId); }
+  if (activeAccountId === id) { activeAccountId = savedAccounts[0]?.id || ''; localStorage.setItem('tg_active_id', activeAccountId); }
   location.reload();
 }
 
 function uploadAvatar(e) {
-  const f = e.target.files.item(0);
+  const f = e.target.files[0];
   if (!f) return;
   const r = new FileReader();
   r.onload = ev => {
@@ -331,11 +313,15 @@ function uploadAvatar(e) {
   r.readAsDataURL(f);
   e.target.value = '';
 }
+
 async function handleWsMessage(ev) {
   const d = JSON.parse(ev.data);
   if (d.type === 'auth_error') $('authError').textContent = d.message;
   if (d.type === 'profile_error') alert(d.message);
-  if (d.type === 'auto_login_failed') { activeAccountId = ''; localStorage.removeItem('tg_active_id'); }
+  if (d.type === 'auto_login_failed') {
+    activeAccountId = ''; localStorage.removeItem('tg_active_id');
+    if ($('authOverlay')) $('authOverlay').style.display = 'flex';
+  }
 
   if (d.type === 'phone_checked') {
     $('authError').textContent = '';
@@ -385,7 +371,7 @@ async function handleWsMessage(ev) {
   if (d.type === 'users_list') { users = d.users; renderChatList(); }
 
   if (d.type === 'typing') {
-    const isRoom = d.to === 'general' || String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
+    const isRoom = String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
     const k = isRoom ? d.to : d.fromId;
     typingUsers[k] = d.fromName;
     if (chat === k) updateChatHeader();
@@ -394,16 +380,16 @@ async function handleWsMessage(ev) {
   }
   if (d.type === 'history') {
     d.messages.forEach(m => {
-      const isRoom = m.to === 'general' || String(m.to).startsWith('gr_') || String(m.to).startsWith('ch_');
-      const k = isRoom ? m.to : (m.to === myId && m.fromId === myId ? 'saved' : (m.fromId === myId ? m.to : m.fromId));
+      const isRoom = String(m.to).startsWith('gr_') || String(m.to).startsWith('ch_');
+      const k = m.fromId === 'service' ? 'service' : (isRoom ? m.to : (m.to === myId && m.fromId === myId ? 'saved' : (m.fromId === myId ? m.to : m.fromId)));
       if (!hist[k]) hist[k] = [];
       if (!hist[k].some(x => x.msgId === m.msgId)) hist[k].push({ ...m, reactions: m.reactions || {} });
     });
     renderChatList(); renderMessages();
   }
   if (d.type === 'message') {
-    const isRoom = d.to === 'general' || String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
-    const k = isRoom ? d.to : (d.to === myId && d.fromId === myId ? 'saved' : d.fromId);
+    const isRoom = String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
+    const k = d.fromId === 'service' ? 'service' : (isRoom ? d.to : (d.to === myId && d.fromId === myId ? 'saved' : d.fromId));
     if (!hist[k]) hist[k] = [];
     hist[k].push({ ...d, reactions: {} });
     delete typingUsers[k];
@@ -411,19 +397,19 @@ async function handleWsMessage(ev) {
     renderChatList(); if (chat === k) { updateChatHeader(); renderMessages(); }
   }
   if (d.type === 'edit_msg') {
-    const isRoom = d.to === 'general' || String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
+    const isRoom = String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
     const k = isRoom ? d.to : (d.fromId === myId ? d.to : d.fromId);
     const m = (hist[k] || []).find(x => x.msgId === d.msgId);
     if (m) { m.text = d.text; m.edited = true; if (chat === k) renderMessages(); }
   }
   if (d.type === 'delete_msg') {
-    const isRoom = d.to === 'general' || String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
+    const isRoom = String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
     const k = isRoom ? d.to : (d.fromId === myId ? d.to : d.fromId);
     if (hist[k]) { hist[k] = hist[k].filter(x => x.msgId !== d.msgId); if (chat === k) renderMessages(); renderChatList(); }
   }
   if (d.type === 'pin_msg') { $('pinText').textContent = '📌 ' + d.text; $('pinBar').style.display = 'flex'; }
   if (d.type === 'reaction') {
-    const isRoom = d.to === 'general' || String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
+    const isRoom = String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
     const k = isRoom ? d.to : (d.fromId === myId ? d.to : d.fromId);
     const m = (hist[k] || []).find(x => x.msgId === d.msgId);
     if (m) { m.reactions[d.emoji] = (m.reactions[d.emoji] || 0) + 1; if (chat === k) renderMessages(); }
@@ -440,7 +426,7 @@ function openCreateFolderModal() {
   box.innerHTML = '';
   const allTargets = [
     { id: 'saved', name: 'Избранное' },
-    { id: 'general', name: 'Общий чат друзей' },
+    { id: 'service', name: 'TurboGram' },
     ...customRooms.map(r => ({ id: r.id, name: r.title })),
     ...users.filter(u => u.id !== myId).map(u => ({ id: u.id, name: u.name }))
   ];
@@ -461,7 +447,6 @@ function saveCustomFolder() {
   $('createFolderModal').style.display = 'none';
   renderFoldersUI(); renderChatList();
 }
-
 function deleteCustomFolder(fId) {
   if (!confirm('Удалить эту папку?')) return;
   customFolders = customFolders.filter(f => f.id !== fId);
@@ -485,12 +470,11 @@ function renderFoldersUI() {
       mBox.innerHTML += `<div class="ios-pill-tab ${folder === f.id ? 'active' : ''}" onclick="setFolder('${f.id}')">${f.name} ${badge}</div>`;
     });
     mBox.innerHTML += `<div class="ios-pill-tab" onclick="openCreateFolderModal()" style="color:#3390ec">+ Папка</div>`;
-    if (folder !== 'all') mBox.innerHTML += `<div class="ios-pill-tab" onclick="deleteCustomFolder('${folder}')" style="color:#ff453a">✕</div>`;
+    if (folder !== 'all' && folder !== 'archive') mBox.innerHTML += `<div class="ios-pill-tab" onclick="deleteCustomFolder('${folder}')" style="color:#ff453a">✕</div>`;
   }
 }
 
 function setFolder(f) { folder = f; renderFoldersUI(); renderChatList(); }
-
 function renderChatList() {
   renderFoldersUI();
   const list = $('chatList'), cleanQ = $('searchInput').value.trim().toLowerCase().replace(/^@/, '');
@@ -499,13 +483,11 @@ function renderChatList() {
   const allowed = cid => !activeF || activeF.chatIds.includes(cid);
   const makeBadge = k => unreadCounts[k] ? `<span class="unread-badge">${unreadCounts[k]}</span>` : '';
 
-  // Точные залитые SVG-иконки 1-в-1 как на референсах
   const verifiedBadgeSvg = `<svg style="width:16px;height:16px;fill:#4ea4f6;vertical-align:-3px;margin-left:5px;flex-shrink:0" viewBox="0 0 24 24"><path d="M12 2l2.4 2.2 3.2-.4.8 3.1 2.9 1.4-1.2 3 1.2 3-2.9 1.4-.8 3.1-3.2-.4L12 22l-2.4-2.2-3.2.4-.8-3.1-2.9-1.4 1.2-3-1.2-3 2.9-1.4.8-3.1 3.2.4L12 2zm-1.2 13.4l5.4-5.4-1.4-1.4-4 4-2-2-1.4 1.4 3.4 3.4z"/></svg>`;
   const archiveBoxSvg = `<svg style="width:26px;height:26px;fill:#fff" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v2c0 .7.4 1.4 1 1.7V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9.7c.6-.3 1-1 1-1.7V6c0-1.1-.9-2-2-2zm-5 10H9v-2h6v2zm5-6H4V6h16v2z"/></svg>`;
   const bookmarkFillSvg = `<svg style="width:24px;height:24px;fill:#fff" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>`;
   const planeFillSvg = `<svg style="width:26px;height:26px;fill:#fff;margin-right:2px" viewBox="0 0 24 24"><path d="M20.665 3.717l-17.73 6.837c-1.21.486-1.203 1.161-.222 1.462l4.552 1.42 10.532-6.645c.498-.303.953-.14.579.192l-8.533 7.701h-.002l.002.001-.314 4.692c.46 0 .663-.211.921-.46l2.211-2.15 4.599 3.397c.848.467 1.457.227 1.668-.785l3.019-14.228c.309-1.239-.473-1.8-1.282-1.434z"/></svg>`;
 
-  // 1. Архив чатов (с голубым кругом и двойным контуром вокруг как на скриншоте)
   if (folder !== 'archive' && !cleanQ) {
     const archUnread = archivedChats.reduce((s, id) => s + (unreadCounts[id] || 0), 0);
     const archBadge = archUnread > 0 ? `<span class="unread-badge" style="background:#8e8e93">${archUnread}</span>` : '';
@@ -524,35 +506,35 @@ function renderChatList() {
 
   const isVisible = cid => folder === 'archive' ? archivedChats.includes(cid) : (!archivedChats.includes(cid) && allowed(cid));
 
-  // 2. Избранное (голубой круг + белая залитая закладка)
   if (isVisible('saved') && (!cleanQ || 'избранное'.includes(cleanQ))) {
-    const last = (hist.saved || []).at(-1);
+    const arr = hist.saved || [];
+    const last = arr[arr.length - 1];
     const prev = last ? (last.voice ? 'Голосовое сообщение' : (last.file ? 'Медиафайл' : last.text)) : 'Сохраняйте заметки и файлы';
     list.innerHTML += `<div class="chat-item ${chat === 'saved' ? 'active' : ''}" onclick="selectChat('saved','Избранное')"><div class="avatar" style="background:linear-gradient(180deg,#5eb5f7,#2b8ce6)">${bookmarkFillSvg}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">Избранное</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge('saved')}</div></div></div>`;
   }
 
-  // 3. TurboGram (голубой круг + белый самолётик + синяя галочка)
   if (isVisible('service') && (!cleanQ || 'turbogram'.includes(cleanQ))) {
-    const last = (hist.service || []).at(-1);
+    const arr = hist.service || [];
+    const last = arr[arr.length - 1];
     const prev = last ? last.text.replace(/\n/g, ' ') : 'Вход с нового устройства...';
     list.innerHTML += `<div class="chat-item ${chat === 'service' ? 'active' : ''}" onclick="selectChat('service','TurboGram')" oncontextmenu="event.preventDefault();toggleArchiveChat('service')"><div class="avatar" style="background:linear-gradient(180deg,#5eb5f7,#2b8ce6)">${planeFillSvg}</div><div class="chat-info"><div class="chat-top"><span class="chat-name" style="display:flex;align-items:center">TurboGram${verifiedBadgeSvg}</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge('service')}</div></div></div>`;
   }
 
-  // 4. Созданные группы и каналы
   customRooms.forEach(r => {
     if (!isVisible(r.id) || (cleanQ && !r.title.toLowerCase().includes(cleanQ))) return;
-    const last = (hist[r.id] || []).at(-1);
+    const arr = hist[r.id] || [];
+    const last = arr[arr.length - 1];
     const prev = last ? `${last.fromName}: ${last.text || 'Медиа'}` : (r.kind === 'channel' ? 'Канал создан' : 'Группа создана');
     list.innerHTML += `<div class="chat-item ${chat === r.id ? 'active' : ''}" onclick="selectChat('${r.id}','${r.title}')" oncontextmenu="event.preventDefault();toggleArchiveChat('${r.id}')"><div class="avatar" style="background:linear-gradient(135deg,#34c759,#007aff)">${r.title.slice(0,1).toUpperCase()}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">${r.title}</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge(r.id)}</div></div></div>`;
   });
 
-  // 5. Личные переписки и поиск по @username
   users.forEach(u => {
     if (u.id === myId || !isVisible(u.id)) return;
     const hasHistory = (hist[u.id] && hist[u.id].length > 0) || chat === u.id;
     const matchesSearch = cleanQ.length >= 2 && ((u.username && u.username.toLowerCase().includes(cleanQ)) || u.name.toLowerCase().includes(cleanQ));
     if (!hasHistory && !matchesSearch) return;
-    const last = (hist[u.id] || []).at(-1);
+    const arr = hist[u.id] || [];
+    const last = arr[arr.length - 1];
     const tag = u.username ? `@${u.username}` : '';
     const prev = typingUsers[u.id] ? `<span style="color:#3390ec">печатает...</span>` : (last ? (last.voice ? 'Голосовое сообщение' : (last.file ? 'Медиафайл' : last.text)) : (tag ? `${tag} • ${u.online ? 'в сети' : 'не в сети'}` : 'Нажмите, чтобы написать'));
     const ava = u.avatar ? `<img src="${u.avatar}">` : u.name.slice(0, 1).toUpperCase();
@@ -570,14 +552,13 @@ function updateChatHeader() {
     badge.textContent = totalUnread;
   }
 
-  let avaHtml = '🔖';
+  let avaHtml = '';
   if (chat === 'saved') {
     sub.textContent = 'облачное хранилище';
-    avaHtml = '🔖';
-  } else if (chat === 'general') {
-    sub.textContent = typingUsers.general ? `${typingUsers.general} печатает...` : `${users.length} участников`;
-    if (typingUsers.general) sub.classList.add('is-typing');
-    avaHtml = 'TG';
+    avaHtml = '<svg style="width:20px;height:20px;fill:#fff" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>';
+  } else if (chat === 'service') {
+    sub.textContent = 'служебные уведомления';
+    avaHtml = '<svg style="width:22px;height:22px;fill:#fff;margin-right:2px" viewBox="0 0 24 24"><path d="M20.665 3.717l-17.73 6.837c-1.21.486-1.203 1.161-.222 1.462l4.552 1.42 10.532-6.645c.498-.303.953-.14.579.192l-8.533 7.701h-.002l.002.001-.314 4.692c.46 0 .663-.211.921-.46l2.211-2.15 4.599 3.397c.848.467 1.457.227 1.668-.785l3.019-14.228c.309-1.239-.473-1.8-1.282-1.434z"/></svg>';
   } else if (chat.startsWith('gr_') || chat.startsWith('ch_')) {
     const r = customRooms.find(x => x.id === chat);
     sub.textContent = r?.kind === 'channel' ? 'канал' : 'группа';
@@ -595,9 +576,11 @@ function updateChatHeader() {
 
 function selectChat(id, title) {
   chat = id; delete unreadCounts[id]; $('chatTitle').textContent = title; updateChatHeader();
-  const isPrivate = id !== 'general' && id !== 'saved' && !id.startsWith('gr_') && !id.startsWith('ch_');
+  const isPrivate = id !== 'saved' && id !== 'service' && !id.startsWith('gr_') && !id.startsWith('ch_');
   $('callBtn').style.display = isPrivate ? 'block' : 'none';
   $('videoBtn').style.display = isPrivate ? 'block' : 'none';
+  const inpBar = document.querySelector('.input-area');
+  if (inpBar) inpBar.style.display = id === 'service' ? 'none' : 'flex';
   renderChatList(); renderMessages(); document.body.classList.add('mobile-chat-open');
 }
 
@@ -622,9 +605,10 @@ function openMsgContextMenu(e, m, me) {
 }
 function closeContextMenu() { if ($('msgContextMenu')) $('msgContextMenu').style.display = 'none'; }
 document.addEventListener('click', closeContextMenu);
+
 function renderMessages() {
   const box = $('messages'); box.innerHTML = '';
-  const isRoom = chat === 'general' || chat.startsWith('gr_') || chat.startsWith('ch_');
+  const isRoom = chat.startsWith('gr_') || chat.startsWith('ch_');
   (hist[chat] || []).forEach(m => {
     const me = m.fromId === myId, el = document.createElement('div');
     el.className = 'msg ' + (me ? 'outgoing' : 'incoming');
@@ -647,7 +631,7 @@ function sendMessage() {
   if (!text) return; if (pkr) pkr.style.display = 'none';
   const msgId = Date.now().toString(), time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const target = chat === 'saved' ? myId : chat;
-  const isRoom = chat === 'general' || chat.startsWith('gr_') || chat.startsWith('ch_');
+  const isRoom = chat.startsWith('gr_') || chat.startsWith('ch_');
   const payload = { type: 'message', msgId, to: target, text, reply: replyTo };
   if (!isRoom && chat !== 'saved') {
     (hist[chat] = hist[chat] || []).push({ ...payload, fromId: myId, fromName: myName, time, reactions: {} });
@@ -657,13 +641,13 @@ function sendMessage() {
 }
 
 function sendFile(e) {
-  const f = e.target.files.item(0); if (!f) return;
+  const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = ev => {
     const msgId = Date.now().toString(), time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const file = { name: f.name, isImage: f.type.startsWith('image/'), data: ev.target.result };
     const target = chat === 'saved' ? myId : chat;
-    const isRoom = chat === 'general' || chat.startsWith('gr_') || chat.startsWith('ch_');
+    const isRoom = chat.startsWith('gr_') || chat.startsWith('ch_');
     ws.send(JSON.stringify({ type: 'message', msgId, to: target, text: '', file, reply: replyTo }));
     if (!isRoom && chat !== 'saved') {
       (hist[chat] = hist[chat] || []).push({ msgId, fromId: myId, fromName: myName, text: '', file, time, reply: replyTo, reactions: {} });
@@ -676,7 +660,7 @@ function sendFile(e) {
 
 $('msgInput').addEventListener('input', () => {
   updateSendBtnState();
-  if (chat !== 'saved' && ws && ws.readyState === 1 && !typingTimer) {
+  if (chat !== 'saved' && chat !== 'service' && ws && ws.readyState === 1 && !typingTimer) {
     ws.send(JSON.stringify({ type: 'typing', to: chat }));
     typingTimer = setTimeout(() => { typingTimer = null; }, 2000);
   }
@@ -699,7 +683,7 @@ async function toggleVoiceRecord() {
         reader.onload = ev => {
           const msgId = Date.now().toString(), time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const target = chat === 'saved' ? myId : chat;
-          const isRoom = chat === 'general' || chat.startsWith('gr_') || chat.startsWith('ch_');
+          const isRoom = chat.startsWith('gr_') || chat.startsWith('ch_');
           ws.send(JSON.stringify({ type: 'message', msgId, to: target, text: '', voice: ev.target.result, reply: replyTo }));
           if (!isRoom && chat !== 'saved') {
             (hist[chat] = hist[chat] || []).push({ msgId, fromId: myId, fromName: myName, text: '', voice: ev.target.result, time, reply: replyTo, reactions: {} });
@@ -722,7 +706,7 @@ async function setupPC(id, withVideo) {
   stream.getTracks().forEach(t => pc.addTrack(t, stream));
   if (withVideo && stream.getVideoTracks().length) { $('localVideo').srcObject = stream; $('localVideo').style.display = 'block'; }
   pc.ontrack = e => {
-    const remStream = e.streams.at(0) || new MediaStream([e.track]);
+    const remStream = e.streams[0] || new MediaStream([e.track]);
     $('remoteAudio').srcObject = remStream; $('remoteAudio').play().catch(() => {});
     if (remStream.getVideoTracks().length) { $('remoteVideo').srcObject = remStream; $('remoteVideo').style.display = 'block'; }
   };
@@ -730,7 +714,7 @@ async function setupPC(id, withVideo) {
 }
 
 async function startCall(withVideo) {
-  if (chat === 'general' || chat === 'saved' || chat.startsWith('gr_') || chat.startsWith('ch_')) return;
+  if (chat === 'saved' || chat === 'service' || chat.startsWith('gr_') || chat.startsWith('ch_')) return;
   try {
     $('callBar').style.display = 'flex'; $('callStatus').textContent = withVideo ? 'Видеозвонок...' : 'Звонок...';
     await setupPC(chat, withVideo); const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
@@ -751,7 +735,7 @@ async function handleOffer(d) {
 async function shareScreen() {
   if (!pc) return;
   const scr = await navigator.mediaDevices.getDisplayMedia({ video: true });
-  const track = scr.getVideoTracks().at(0);
+  const track = scr.getVideoTracks()[0];
   const sender = pc.getSenders().find(s => s.track?.kind === 'video');
   if (sender) sender.replaceTrack(track); else pc.addTrack(track, scr);
   $('localVideo').srcObject = scr; $('localVideo').style.display = 'block';
@@ -766,7 +750,3 @@ function endCall(notify) {
 }
 
 connectWS();
-
-
-
-
