@@ -255,6 +255,10 @@ function openSettings() {
     if ($('bindGmailInput')) $('bindGmailInput').value = myEmail;
   }
   renderAccountsList();
+  $('settingsModal').style.display = 'flex';
+}
+
+  renderAccountsList();
   document.querySelectorAll('.m-nav-item').forEach(el => el.classList.remove('active'));
   const navBtns = document.querySelectorAll('.m-nav-item');
   if (navBtns.at(-1)) navBtns.at(-1).classList.add('active');
