@@ -208,6 +208,7 @@
     .ios-tcard { flex: 1; height: 96px; border-radius: 14px; border: 2px solid transparent; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; background: #121820; }
     .ios-tcard.active { border-color: #4ea4f6; }
   </style>
+  <script src="https://jsdelivr.net"></script>
 </head>
 <body>
     <div class="context-menu" id="msgContextMenu"></div>
@@ -285,6 +286,18 @@
       </div>
       <button type="button" class="btn-primary" style="margin-bottom: 8px;" onclick="copyProfileLink()">Скопировать ссылку</button>
       <button type="button" class="btn-primary" style="background: var(--bg-input);" onclick="$('qrModal').style.display='none'">Закрыть</button>
+    </div>
+  </div>
+  
+    <div class="modal-overlay" id="scannerModal" style="display: none; z-index: 130; background: #000;">
+    <div class="modal-box" style="background: transparent; border: none; box-shadow: none; max-width: 380px;">
+      <h3 style="margin-bottom: 6px; font-size: 20px;">Сканируйте QR-код</h3>
+      <p style="color: #8e8e93; font-size: 13.5px; margin-bottom: 16px;">Наведите камеру на QR-код входа на другом устройстве или на QR-код профиля.</p>
+      <div style="position: relative; width: 260px; height: 260px; margin: 0 auto 18px; border-radius: 26px; overflow: hidden; border: 3px solid #4ea4f6; background: #111;">
+        <video id="qrVideo" playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <canvas id="qrScanCanvas" style="display: none;"></canvas>
+      </div>
+      <button type="button" class="btn-primary" style="background: rgba(255,255,255,0.14);" onclick="closeDeviceScanner()">Отмена</button>
     </div>
   </div>
 
