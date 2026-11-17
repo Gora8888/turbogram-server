@@ -61,6 +61,7 @@ initDeviceMode();
 
 function closeMobileChat() { document.body.classList.remove('mobile-chat-open'); }
 function setMobileTab(tab) {
+  if ($('settingsModal')) $('settingsModal').style.display = 'none';
   setFolder('all');
   document.querySelectorAll('.m-nav-item').forEach(el => el.classList.remove('active'));
   if ($('m-nav-' + tab)) $('m-nav-' + tab).classList.add('active');
@@ -232,17 +233,34 @@ function openPeerProfile() {
 
 }
 
+function toggleSetSub(id) {
+  const el = $(id);
+  if (!el) return;
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.ios-subpanel').forEach(p => p.classList.remove('open'));
+  if (!wasOpen) el.classList.add('open');
+}
+
 function openSettings() {
   $('editNameInput').value = myName;
+  if ($('iosSetBigName')) $('iosSetBigName').textContent = myName;
   if ($('editUsernameInput')) $('editUsernameInput').value = myUname ? '@' + myUname : '';
   if ($('editPassInput')) $('editPassInput').value = '';
   $('editStatusInput').value = myStatus;
-  $('modalPhone').textContent = `${myId} ${myUname ? '(@' + myUname + ')' : ''}`;
+  $('modalPhone').textContent = `${myId}${myUname ? ' • @' + myUname : ''}`;
   $('modalAvatar').innerHTML = $('myAvatarBox').innerHTML;
+  if ($('iosAccCountVal')) $('iosAccCountVal').textContent = savedAccounts.length || 1;
   if ($('gmailCurrentStatus')) {
     $('gmailCurrentStatus').innerHTML = myEmail ? `Привязана почта: <b style="color:#fff">${myEmail}</b>` : 'Почта Gmail не привязана';
     if ($('bindGmailInput')) $('bindGmailInput').value = myEmail;
   }
+  renderAccountsList();
+  document.querySelectorAll('.m-nav-item').forEach(el => el.classList.remove('active'));
+  const navBtns = document.querySelectorAll('.m-nav-item');
+  if (navBtns.at(-1)) navBtns.at(-1).classList.add('active');
+  $('settingsModal').style.display = 'flex';
+}
+
   renderAccountsList();
   $('settingsModal').style.display = 'flex';
 }
