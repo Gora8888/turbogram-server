@@ -14,6 +14,13 @@ const SVG_SEND = '<svg class="svg-ico" viewBox="0 0 24 24"><line x1="12" y1="19"
 let savedAccounts = JSON.parse(localStorage.getItem('tg_accounts') || '[]');
 let activeAccountId = localStorage.getItem('tg_active_id') || '';
 let customFolders = JSON.parse(localStorage.getItem('tg_custom_folders') || '[]');
+let archivedChats = JSON.parse(localStorage.getItem('tg_archived_chats') || '[]');
+function toggleArchiveChat(cid) {
+  if (archivedChats.includes(cid)) archivedChats = archivedChats.filter(x => x !== cid);
+  else archivedChats.push(cid);
+  localStorage.setItem('tg_archived_chats', JSON.stringify(archivedChats));
+  renderChatList();
+}
 
 function sendAutoLogin() {
   if (!activeAccountId || !ws || ws.readyState !== 1) return;
