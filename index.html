@@ -208,6 +208,29 @@
     .circle-rec-ring { width: 240px; height: 240px; border-radius: 50%; padding: 4px; background: linear-gradient(135deg, #3390ec, #34c759); box-shadow: 0 12px 40px rgba(0,0,0,0.75); overflow: hidden; }
     .circle-rec-ring video { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; transform: scaleX(-1); background: #000; }
     .msg-circle-video { width: 210px; height: 210px; border-radius: 50%; object-fit: cover; display: block; margin: 2px 0 4px; border: 2.5px solid #4ea4f6; cursor: pointer; background: #000; }
+        /* Кружки 1-в-1 как в Telegram (без прямоугольного фона пузыря) */
+    .msg.is-circle { background: transparent !important; padding: 0 !important; box-shadow: none !important; overflow: visible !important; }
+    .msg.is-circle::before, .msg.is-circle::after { display: none !important; }
+    .circle-msg-wrap { position: relative; width: 224px; height: 224px; border-radius: 50%; overflow: hidden; border: 2px solid rgba(255, 255, 255, 0.14); background: #111; box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
+    .msg-circle-video { width: 100% !important; height: 100% !important; border: none !important; margin: 0 !important; object-fit: cover; border-radius: 50%; display: block; transform: scaleX(-1); }
+    .circle-dur-pill { position: absolute; bottom: 12px; left: 16px; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(8px); color: #fff; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 10px; pointer-events: none; }
+    .circle-mute-btn { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(8px); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; pointer-events: none; }
+    .msg.is-circle .msg-meta { position: absolute; bottom: 6px; right: 2px; background: rgba(0, 0, 0, 0.52); backdrop-filter: blur(8px); padding: 2px 7px; border-radius: 10px; color: #fff !important; margin: 0 !important; }
+
+    /* Стикеры без пузыря */
+    .msg.is-sticker { background: transparent !important; padding: 0 !important; }
+    .msg.is-sticker::before, .msg.is-sticker::after { display: none !important; }
+    .msg-sticker-img { width: 168px; height: 168px; object-fit: contain; display: block; border-radius: 16px; }
+
+    /* Панель эмодзи и стикеров */
+    .emoji-picker { flex-direction: column !important; max-width: 370px !important; height: 290px; padding: 8px !important; }
+    .ep-tabs { display: flex; gap: 4px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; margin-bottom: 6px; overflow-x: auto; flex-shrink: 0; }
+    .ep-tab { background: transparent; border: none; color: #8e8e93; font-size: 18px; padding: 4px 8px; border-radius: 10px; cursor: pointer; flex-shrink: 0; }
+    .ep-tab.active { background: rgba(255,255,255,0.14); color: #fff; }
+    .ep-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; align-content: start; }
+    .ep-sticker-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-content: start; }
+    .ep-sticker-item { width: 100%; aspect-ratio: 1; border-radius: 12px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+    .ep-sticker-item img { width: 100%; height: 100%; object-fit: contain; }
   </style>
 </head>
 <body>
@@ -704,6 +727,7 @@
     <div class="input-area">
       <button type="button" class="ios-circle-tool" onclick="$('fileInput').click()"><svg class="svg-ico" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
       <input type="file" id="fileInput" style="display: none;" onchange="sendFile(event)">
+      <input type="file" id="stickerMakerInput" accept="image/*" style="display: none;" onchange="createCustomSticker(event)">
       <div class="input-capsule">
         <input type="text" id="msgInput" placeholder="Сообщение" autocomplete="off">
         <button type="button" class="inside-sticker-btn" onclick="toggleEmojiPicker()"><svg class="svg-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
