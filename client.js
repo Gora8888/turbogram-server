@@ -10,6 +10,8 @@ const typingUsers = {};
 
 const SVG_MIC = '<svg class="svg-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
 const SVG_SEND = '<svg class="svg-ico" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+const SVG_TICK_SENT = '<span class="msg-ticks"><svg viewBox="0 0 18 14"><polyline points="2 7 6.5 11.5 15 3"/></svg></span>';
+const SVG_TICK_READ = '<span class="msg-ticks read"><svg viewBox="0 0 22 14"><polyline points="1.5 7 6 11.5 14.5 3"/><polyline points="7.5 7 12 11.5 20.5 3"/></svg></span>';
 const SVG_CIRCLE_CAM = '<svg class="svg-ico" viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="14" rx="4"/><polygon points="22 7 16 12 22 17 22 7"/></svg>';
 let recordMode = 'voice';
 let holdTimer = null, isHoldAction = false, circleStream = null, circleRec = null, circleChunks = [], circleCanceled = false;
@@ -418,7 +420,10 @@ async function handleWsMessage(ev) {
   if (d.type === 'auto_login_failed') {
     activeAccountId = ''; localStorage.removeItem('tg_active_id');
     if ($('authOverlay')) $('authOverlay').style.display = 'flex';
-  }
+    if (d.type === 'messages_read' && hist[d.byId]) {
+  hist[d.byId].forEach(m => { if (m.fromId === myId) m.read = true; });
+  if (chat === d.byId) renderMessages();
+}
 
   if (d.type === 'phone_checked') {
     $('authError').textContent = '';
@@ -492,7 +497,10 @@ async function handleWsMessage(ev) {
     delete typingUsers[k];
     if (chat !== k || !document.body.classList.contains('mobile-chat-open')) unreadCounts[k] = (unreadCounts[k] || 0) + 1;
     renderChatList(); if (chat === k) { updateChatHeader(); renderMessages(); }
-  }
+    if (chat === k && k !== 'saved' && k !== 'service' && !isRoom && ws && ws.readyState === 1) {
+  ws.send(JSON.stringify({ type: 'mark_read', to: k }));
+}
+
   if (d.type === 'edit_msg') {
     const isRoom = String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
     const k = isRoom ? d.to : (d.fromId === myId ? d.to : d.fromId);
@@ -678,6 +686,7 @@ function selectChat(id, title) {
   $('videoBtn').style.display = isPrivate ? 'block' : 'none';
   const inpBar = document.querySelector('.input-area');
   if (inpBar) inpBar.style.display = id === 'service' ? 'none' : 'flex';
+  if (isPrivate && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'mark_read', to: id }));
   renderChatList(); renderMessages(); document.body.classList.add('mobile-chat-open');
 }
 
@@ -716,7 +725,8 @@ function renderMessages() {
     if (m.voice) body += `<audio controls src="${m.voice}" style="height:34px;max-width:220px;margin-top:4px;display:block" onclick="event.stopPropagation()"></audio>`;
     if (m.videoCircle) body += `<video src="${m.videoCircle}" class="msg-circle-video" playsinline loop onclick="event.stopPropagation();this.paused?this.play():this.pause()"></video>`;
     if (m.file) body += m.file.isImage ? `<img src="${m.file.data}" class="msg-img">` : `<a href="${m.file.data}" download="${m.file.name}" class="msg-file-box" onclick="event.stopPropagation()">📄 ${m.file.name}</a>`;
-    const meta = `<span class="msg-meta">${m.edited ? 'ред. ' : ''}${m.time}${me ? ' ✓✓' : ''}</span>`;
+    const ticksHtml = me ? ((m.read || chat === 'saved') ? SVG_TICK_READ : SVG_TICK_SENT) : '';
+    const meta = `<span class="msg-meta">${m.edited ? 'ред. ' : ''}${m.time}${ticksHtml}</span>`;
     const rk = Object.keys(m.reactions || {});
     const reacts = rk.length ? `<div class="reactions-row">${rk.map(k => `<span class="reaction-badge">${k} ${m.reactions[k]}</span>`).join('')}</div>` : '';
     el.innerHTML = body + meta + reacts; box.appendChild(el);
