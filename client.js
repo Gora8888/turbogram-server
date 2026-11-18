@@ -793,6 +793,18 @@ function openMsgContextMenu(e, m, me) {
 }
 function closeContextMenu() { if ($('msgContextMenu')) $('msgContextMenu').style.display = 'none'; }
 document.addEventListener('click', closeContextMenu);
+function dataUrlToBlobUrl(dataUrl) {
+  if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+  try {
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return URL.createObjectURL(new Blob([u8arr], { type: mime }));
+  } catch (e) { return dataUrl; }
+}
 
 function renderMessages() {
   const box = $('messages'); box.innerHTML = '';
