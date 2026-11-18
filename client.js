@@ -10,9 +10,10 @@ const typingUsers = {};
 
 const SVG_MIC = '<svg class="svg-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
 const SVG_SEND = '<svg class="svg-ico" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+const SVG_CIRCLE_CAM = '<svg class="svg-ico" viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="14" rx="4"/><polygon points="22 7 16 12 22 17 22 7"/></svg>';
 const SVG_TICK_SENT = '<span class="msg-ticks"><svg viewBox="0 0 18 14"><polyline points="2 7 6.5 11.5 15 3"/></svg></span>';
 const SVG_TICK_READ = '<span class="msg-ticks read"><svg viewBox="0 0 22 14"><polyline points="1.5 7 6 11.5 14.5 3"/><polyline points="7.5 7 12 11.5 20.5 3"/></svg></span>';
-const SVG_CIRCLE_CAM = '<svg class="svg-ico" viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="14" rx="4"/><polygon points="22 7 16 12 22 17 22 7"/></svg>';
+
 let recordMode = 'voice';
 let holdTimer = null, isHoldAction = false, circleStream = null, circleRec = null, circleChunks = [], circleCanceled = false;
 
@@ -95,6 +96,7 @@ function loadSavedUiSettings() {
   if (saved.fontSz) { applyFontSize(saved.fontSz); if ($('fontSizeSelect')) $('fontSizeSelect').value = saved.fontSz; }
 }
 loadSavedUiSettings();
+
 if ($('countryCodeSelect')) {
   $('countryCodeSelect').addEventListener('change', e => {
     $('countryPrefixDisplay').value = e.target.value;
@@ -156,7 +158,6 @@ function resetAuthStep() {
   $('authSubtitle').textContent = 'Проверьте код страны и введите свой номер телефона.';
   $('authError').textContent = '';
 }
-
 function bindGmailAccount() {
   const email = $('bindGmailInput').value.trim();
   if (!email || !email.includes('@')) return alert('Введите корректный адрес Gmail!');
@@ -172,11 +173,6 @@ function updateSendBtnState() {
   else btn.innerHTML = recordMode === 'circle' ? SVG_CIRCLE_CAM : SVG_MIC;
 }
 
-function handleMainAction() {
-  const hasText = $('msgInput').value.trim().length > 0;
-  if (hasText && !isRecording) sendMessage();
-  else toggleVoiceRecord();
-}
 function handleMainAction() {
   const hasText = $('msgInput').value.trim().length > 0;
   if (hasText && !isRecording) return sendMessage();
@@ -352,6 +348,7 @@ function openSettings() {
   if (navBtns.length) navBtns[navBtns.length - 1].classList.add('active');
   $('settingsModal').style.display = 'flex';
 }
+
 function saveAllSettings() {
   const n = $('editNameInput').value.trim();
   const u = $('editUsernameInput') ? $('editUsernameInput').value.trim().replace(/^@/, '').toLowerCase() : myUname;
@@ -370,7 +367,6 @@ function saveAllSettings() {
   ws.send(JSON.stringify({ type: 'update_profile', name: myName, username: myUname, password: pw, status: myStatus }));
   alert('Настройки сохранены!');
 }
-
 function renderAccountsList() {
   const box = $('accountsList'); if (!box) return;
   box.innerHTML = '';
@@ -421,10 +417,7 @@ async function handleWsMessage(ev) {
   if (d.type === 'auto_login_failed') {
     activeAccountId = ''; localStorage.removeItem('tg_active_id');
     if ($('authOverlay')) $('authOverlay').style.display = 'flex';
-    if (d.type === 'messages_read' && hist[d.byId]) {
-  hist[d.byId].forEach(m => { if (m.fromId === myId) m.read = true; });
-  if (chat === d.byId) renderMessages();
-}
+  }
 
   if (d.type === 'phone_checked') {
     $('authError').textContent = '';
@@ -473,6 +466,11 @@ async function handleWsMessage(ev) {
   if (d.type === 'rooms_list') { customRooms = d.rooms; renderChatList(); }
   if (d.type === 'users_list') { users = d.users; renderChatList(); }
 
+  if (d.type === 'messages_read' && hist[d.byId]) {
+    hist[d.byId].forEach(m => { if (m.fromId === myId) m.read = true; });
+    if (chat === d.byId) renderMessages();
+  }
+
   if (d.type === 'typing') {
     const isRoom = String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
     const k = isRoom ? d.to : d.fromId;
@@ -496,12 +494,12 @@ async function handleWsMessage(ev) {
     if (!hist[k]) hist[k] = [];
     hist[k].push({ ...d, reactions: {} });
     delete typingUsers[k];
+    if (chat === k && k !== 'saved' && k !== 'service' && !isRoom && ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'mark_read', to: k }));
+    }
     if (chat !== k || !document.body.classList.contains('mobile-chat-open')) unreadCounts[k] = (unreadCounts[k] || 0) + 1;
     renderChatList(); if (chat === k) { updateChatHeader(); renderMessages(); }
-    if (chat === k && k !== 'saved' && k !== 'service' && !isRoom && ws && ws.readyState === 1) {
-  ws.send(JSON.stringify({ type: 'mark_read', to: k }));
-}
-
+  }
   if (d.type === 'edit_msg') {
     const isRoom = String(d.to).startsWith('gr_') || String(d.to).startsWith('ch_');
     const k = isRoom ? d.to : (d.fromId === myId ? d.to : d.fromId);
@@ -553,6 +551,7 @@ function saveCustomFolder() {
   $('createFolderModal').style.display = 'none';
   renderFoldersUI(); renderChatList();
 }
+
 function deleteCustomFolder(fId) {
   if (!confirm('Удалить эту папку?')) return;
   customFolders = customFolders.filter(f => f.id !== fId);
@@ -565,7 +564,7 @@ function renderFoldersUI() {
   if (dBox) {
     dBox.innerHTML = `<div class="folder-item ${folder === 'all' ? 'active' : ''}" onclick="setFolder('all')"><span>💬</span><span>Все</span></div>`;
     customFolders.forEach(f => {
-      dBox.innerHTML += `<div class="folder-item ${folder === f.id ? 'active' : ''}" onclick="setFolder('${f.id}')" oncontextmenu="event.preventDefault();deleteCustomFolder('${f.id}')"><span>${f.icon}</span><span>${f.name.slice(0, 8)}</span></div>`;
+            dBox.innerHTML += `<div class="folder-item ${folder === f.id ? 'active' : ''}" onclick="setFolder('${f.id}')" oncontextmenu="event.preventDefault();deleteCustomFolder('${f.id}')"><span>${f.icon}</span><span>${f.name.slice(0, 8)}</span></div>`;
     });
   }
   if (mBox) {
@@ -581,6 +580,7 @@ function renderFoldersUI() {
 }
 
 function setFolder(f) { folder = f; renderFoldersUI(); renderChatList(); }
+
 function renderChatList() {
   renderFoldersUI();
   const list = $('chatList'), cleanQ = $('searchInput').value.trim().toLowerCase().replace(/^@/, '');
@@ -615,7 +615,7 @@ function renderChatList() {
   if (isVisible('saved') && (!cleanQ || 'избранное'.includes(cleanQ))) {
     const arr = hist.saved || [];
     const last = arr[arr.length - 1];
-    const prev = last ? (last.voice ? 'Голосовое сообщение' : (last.file ? 'Медиафайл' : last.text)) : 'Сохраняйте заметки и файлы';
+    const prev = last ? (last.videoCircle ? 'Видеосообщение' : (last.voice ? 'Голосовое сообщение' : (last.file ? 'Медиафайл' : last.text))) : 'Сохраняйте заметки и файлы';
     list.innerHTML += `<div class="chat-item ${chat === 'saved' ? 'active' : ''}" onclick="selectChat('saved','Избранное')"><div class="avatar" style="background:linear-gradient(180deg,#5eb5f7,#2b8ce6)">${bookmarkFillSvg}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">Избранное</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge('saved')}</div></div></div>`;
   }
 
@@ -642,7 +642,7 @@ function renderChatList() {
     const arr = hist[u.id] || [];
     const last = arr[arr.length - 1];
     const tag = u.username ? `@${u.username}` : '';
-    const prev = typingUsers[u.id] ? `<span style="color:#3390ec">печатает...</span>` : (last ? (last.voice ? 'Голосовое сообщение' : (last.file ? 'Медиафайл' : last.text)) : (tag ? `${tag} • ${u.online ? 'в сети' : 'не в сети'}` : 'Нажмите, чтобы написать'));
+    const prev = typingUsers[u.id] ? `<span style="color:#3390ec">печатает...</span>` : (last ? (last.videoCircle ? 'Видеосообщение' : (last.voice ? 'Голосовое сообщение' : (last.file ? 'Медиафайл' : last.text))) : (tag ? `${tag} • ${u.online ? 'в сети' : 'не в сети'}` : 'Нажмите, чтобы написать'));
     const ava = u.avatar ? `<img src="${u.avatar}">` : u.name.slice(0, 1).toUpperCase();
     list.innerHTML += `<div class="chat-item ${chat === u.id ? 'active' : ''}" onclick="selectChat('${u.id}','${u.name}')" oncontextmenu="event.preventDefault();toggleArchiveChat('${u.id}')"><div class="avatar">${ava}${u.online ? '<div class="online-dot"></div>' : ''}</div><div class="chat-info"><div class="chat-top"><span class="chat-name">${u.name} ${u.status || ''}</span><span class="chat-time">${last?.time || ''}</span></div><div class="chat-bottom"><span class="chat-preview">${prev}</span>${makeBadge(u.id)}</div></div></div>`;
   });
@@ -682,12 +682,12 @@ function updateChatHeader() {
 
 function selectChat(id, title) {
   chat = id; delete unreadCounts[id]; $('chatTitle').textContent = title; updateChatHeader();
-  const isPrivate = id !== 'saved' && id !== 'service' && !id.startsWith('gr_') && !id.startsWith('ch_');
+    const isPrivate = id !== 'saved' && id !== 'service' && !id.startsWith('gr_') && !id.startsWith('ch_');
+  if (isPrivate && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'mark_read', to: id }));
   $('callBtn').style.display = isPrivate ? 'block' : 'none';
   $('videoBtn').style.display = isPrivate ? 'block' : 'none';
   const inpBar = document.querySelector('.input-area');
   if (inpBar) inpBar.style.display = id === 'service' ? 'none' : 'flex';
-  if (isPrivate && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'mark_read', to: id }));
   renderChatList(); renderMessages(); document.body.classList.add('mobile-chat-open');
 }
 
@@ -832,7 +832,7 @@ async function startCall(withVideo) {
 }
 
 async function handleOffer(d) {
-  if (!confirm(`Входящий звонок от ${d.fromName}. Ответить?`)) return ws.send(JSON.stringify({ type: 'call_end', to: d.fromId }));
+    if (!confirm(`Входящий звонок от ${d.fromName}. Ответить?`)) return ws.send(JSON.stringify({ type: 'call_end', to: d.fromId }));
   try {
     $('callBar').style.display = 'flex'; $('callStatus').textContent = `Связь с ${d.fromName}`;
     await setupPC(d.fromId, d.withVideo); await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
@@ -844,7 +844,7 @@ async function handleOffer(d) {
 async function shareScreen() {
   if (!pc) return;
   const scr = await navigator.mediaDevices.getDisplayMedia({ video: true });
-  const track = scr.getVideoTracks()[0];
+  const track = scr.getVideoTracks();
   const sender = pc.getSenders().find(s => s.track?.kind === 'video');
   if (sender) sender.replaceTrack(track); else pc.addTrack(track, scr);
   $('localVideo').srcObject = scr; $('localVideo').style.display = 'block';
@@ -859,3 +859,9 @@ function endCall(notify) {
 }
 
 connectWS();
+
+
+  
+
+      
+
