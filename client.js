@@ -319,6 +319,13 @@ async function startCircleRecord() {
       };
       reader.readAsDataURL(new Blob(circleChunks, { type: blobType }));
     };
+     let sec = 0;
+ $('circleRecTimer').textContent = '● 0:00';
+ const secInt = setInterval(() => {
+   if (!isRecording) return clearInterval(secInt);
+   sec++;
+   $('circleRecTimer').textContent = `● 0:${sec < 10 ? '0' + sec : sec}`;
+ }, 1000);
     circleRec.start();
     isRecording = true;
   } catch (err) {
