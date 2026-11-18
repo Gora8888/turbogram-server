@@ -220,11 +220,12 @@ function handleMainAction() {
 async function startCircleRecord() {
   try {
     circleCanceled = false;
-    circleStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 360, height: 360 }, audio: true });
+    circleStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 240, height: 240 }, audio: true });
     $('circlePreviewVid').srcObject = circleStream;
     $('circleRecOverlay').style.display = 'flex';
     const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '');
-    circleRec = mime ? new MediaRecorder(circleStream, { mimeType: mime }) : new MediaRecorder(circleStream);
+    const opts = mime ? { mimeType: mime, videoBitsPerSecond: 350000 } : { videoBitsPerSecond: 350000 };
+    circleRec = new MediaRecorder(circleStream, opts);
     circleChunks = [];
     circleRec.ondataavailable = e => { if (e.data.size > 0) circleChunks.push(e.data); };
     circleRec.onstop = () => {
