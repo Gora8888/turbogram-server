@@ -175,6 +175,99 @@ function handleMainAction() {
   if (hasText && !isRecording) sendMessage();
   else toggleVoiceRecord();
 }
+function handleMainAction() {
+  const hasText = $('msgInput').value.trim().length > 0;
+  if (hasText && !isRecording) return sendMessage();
+  if (isRecording) {
+    if (recordMode === 'circle') stopAndSendCircle();
+    else toggleVoiceRecord();
+    return;
+  }
+  if (!isHoldAction) {
+    recordMode = recordMode === 'voice' ? 'circle' : 'voice';
+    updateSendBtnState();
+  }
+}
+
+(function bindHoldRecord() {
+  const btn = $('mainActionBtn');
+  if (!btn) return;
+  const startHold = () => {
+    if ($('msgInput').value.trim().length > 0 || isRecording) return;
+    isHoldAction = false;
+    holdTimer = setTimeout(() => {
+      isHoldAction = true;
+      if (recordMode === 'circle') startCircleRecord();
+      else toggleVoiceRecord();
+    }, 260);
+  };
+  const endHold = () => {
+    clearTimeout(holdTimer);
+    if (isHoldAction && isRecording) {
+      if (recordMode === 'circle') stopAndSendCircle();
+      else toggleVoiceRecord();
+    }
+    setTimeout(() => { isHoldAction = false; }, 80);
+  };
+  btn.addEventListener('touchstart', startHold, { passive: true });
+  btn.addEventListener('touchend', endHold);
+  btn.addEventListener('mousedown', startHold);
+  btn.addEventListener('mouseup', endHold);
+})();
+
+async function startCircleRecord() {
+  try {
+    circleCanceled = false;
+    circleStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 360, height: 360 }, audio: true });
+    $('circlePreviewVid').srcObject = circleStream;
+    $('circleRecOverlay').style.display = 'flex';
+    const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '');
+    circleRec = mime ? new MediaRecorder(circleStream, { mimeType: mime }) : new MediaRecorder(circleStream);
+    circleChunks = [];
+    circleRec.ondataavailable = e => { if (e.data.size > 0) circleChunks.push(e.data); };
+    circleRec.onstop = () => {
+      circleStream.getTracks().forEach(t => t.stop());
+      $('circleRecOverlay').style.display = 'none';
+      isRecording = false;
+      updateSendBtnState();
+      if (circleCanceled || !circleChunks.length) return;
+      const blobType = circleRec.mimeType || mime || 'video/mp4';
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const msgId = Date.now().toString(), time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const target = chat === 'saved' ? myId : chat;
+        const isRoom = chat.startsWith('gr_') || chat.startsWith('ch_');
+        ws.send(JSON.stringify({ type: 'message', msgId, to: target, text: '', videoCircle: ev.target.result, reply: replyTo }));
+        if (!isRoom && chat !== 'saved') {
+          (hist[chat] = hist[chat] || []).push({ msgId, fromId: myId, fromName: myName, text: '', videoCircle: ev.target.result, time, reply: replyTo, reactions: {} });
+          renderMessages(); renderChatList();
+        }
+        cancelReply();
+      };
+      reader.readAsDataURL(new Blob(circleChunks, { type: blobType }));
+    };
+    circleRec.start();
+    isRecording = true;
+  } catch (err) {
+    $('circleRecOverlay').style.display = 'none';
+    alert('Нет доступа к камере: ' + err.message);
+  }
+}
+
+function stopAndSendCircle() {
+  if (circleRec && circleRec.state !== 'inactive') circleRec.stop();
+}
+
+function cancelCircleRecord() {
+  circleCanceled = true;
+  if (circleRec && circleRec.state !== 'inactive') circleRec.stop();
+  else {
+    if (circleStream) circleStream.getTracks().forEach(t => t.stop());
+    $('circleRecOverlay').style.display = 'none';
+    isRecording = false;
+    updateSendBtnState();
+  }
+}
 
 function openStoryCreator() {
   draftStoryImg = '';
@@ -621,6 +714,7 @@ function renderMessages() {
     if (m.reply) body += `<div class="reply-quote"><b>${m.reply.name}:</b> ${m.reply.text}</div>`;
     if (m.text) body += `<span>${formatSpoilers(m.text)}</span>`;
     if (m.voice) body += `<audio controls src="${m.voice}" style="height:34px;max-width:220px;margin-top:4px;display:block" onclick="event.stopPropagation()"></audio>`;
+    if (m.videoCircle) body += `<video src="${m.videoCircle}" class="msg-circle-video" playsinline loop onclick="event.stopPropagation();this.paused?this.play():this.pause()"></video>`;
     if (m.file) body += m.file.isImage ? `<img src="${m.file.data}" class="msg-img">` : `<a href="${m.file.data}" download="${m.file.name}" class="msg-file-box" onclick="event.stopPropagation()">📄 ${m.file.name}</a>`;
     const meta = `<span class="msg-meta">${m.edited ? 'ред. ' : ''}${m.time}${me ? ' ✓✓' : ''}</span>`;
     const rk = Object.keys(m.reactions || {});
