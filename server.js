@@ -383,6 +383,7 @@ wss.on('connection', ws => {
         text: data.text || '',
         voice: data.voice || null,
         videoCircle: data.videoCircle || null,
+        sticker: data.sticker || null,
         file: data.file || null,
         reply: data.reply || null,
         destruct: !!data.destruct,
