@@ -85,10 +85,15 @@
 
     .messages { flex: 1; padding: 12px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .msg { max-width: 78%; padding: 8px 12px 7px; border-radius: 18px; font-size: var(--msg-size); line-height: 1.38; word-wrap: break-word; position: relative; cursor: pointer; }
-    .msg.incoming { background: var(--bg-msg-in); align-self: flex-start; border-bottom-left-radius: 5px; margin-bottom: 4px; }
-    .msg.incoming::before { content: ""; position: absolute; bottom: 0; left: -5px; width: 11px; height: 14px; background: var(--bg-msg-in); clip-path: polygon(100% 0, 0 100%, 100% 100%); }
-    .msg.outgoing { background: var(--bg-msg-out); align-self: flex-end; border-bottom-right-radius: 5px; margin-bottom: 4px; }
-    .msg.outgoing::after { content: ""; position: absolute; bottom: 0; right: -5px; width: 11px; height: 14px; background: var(--bg-msg-out); clip-path: polygon(0 0, 0 100%, 100% 100%); }
+    .msg.incoming { background: var(--bg-msg-in); align-self: flex-start; border-bottom-left-radius: 6px; margin-bottom: 4px; }
+    .msg.incoming::before { content: ""; position: absolute; bottom: 0; left: -6px; width: 12px; height: 16px; background: var(--bg-msg-in); border-bottom-right-radius: 12px; }
+    .msg.incoming::after { content: ""; position: absolute; bottom: 0; left: -10px; width: 10px; height: 16px; background: var(--bg-main); border-bottom-right-radius: 10px; }
+    .msg.outgoing { background: var(--bg-msg-out); align-self: flex-end; border-bottom-right-radius: 6px; margin-bottom: 4px; }
+    .msg.outgoing::before { content: ""; position: absolute; bottom: 0; right: -6px; width: 12px; height: 16px; background: var(--bg-msg-out); border-bottom-left-radius: 12px; }
+    .msg.outgoing::after { content: ""; position: absolute; bottom: 0; right: -10px; width: 10px; height: 16px; background: var(--bg-main); border-bottom-left-radius: 10px; }
+    .msg-ticks { display: inline-flex; align-items: center; margin-left: 2px; vertical-align: -2px; }
+    .msg-ticks svg { width: 16px; height: 12px; stroke: rgba(255, 255, 255, 0.45); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .msg-ticks.read svg { stroke: #ffffff; }
     .msg-author { font-size: 13px; color: #5ac8fa; margin-bottom: 2px; font-weight: 600; }
     .reply-quote { border-left: 2.5px solid #5ac8fa; background: rgba(0, 0, 0, 0.25); padding: 4px 8px; border-radius: 8px; font-size: 13px; margin-bottom: 5px; }
     .spoiler { background: #4a5a6a; color: transparent; border-radius: 4px; padding: 0 4px; cursor: pointer; }
@@ -862,6 +867,16 @@
         }, 1200);
       }
     });
+     if (window.visualViewport) {
+   const syncViewport = () => {
+     document.body.style.height = window.visualViewport.height + 'px';
+     window.scrollTo(0, 0);
+     const msgs = document.getElementById('messages');
+     if (msgs) msgs.scrollTop = msgs.scrollHeight;
+   };
+   window.visualViewport.addEventListener('resize', syncViewport);
+   window.visualViewport.addEventListener('scroll', syncViewport);
+ }
   </script>
 </body>
 </html>
