@@ -193,7 +193,7 @@ const server = http.createServer((req, res) => {
   }
 });
 
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, maxPayload: 50 * 1024 * 1024 });
 
 function broadcastUsers() {
   const list = Object.values(users).map(u => ({
@@ -382,12 +382,20 @@ wss.on('connection', ws => {
         to: data.to,
         text: data.text || '',
         voice: data.voice || null,
+        videoCircle: data.videoCircle || null,
         file: data.file || null,
         reply: data.reply || null,
         destruct: !!data.destruct,
         createdAt: Date.now(),
         time
       };
+        if (data.type === 'mark_read' && myId) {
+    const peer = sockets[data.to];
+    if (peer && peer.readyState === 1) {
+      peer.send(JSON.stringify({ type: 'messages_read', byId: myId }));
+    }
+  }
+
       if (!msgObj.destruct) {
         const encryptedRecord = { ...msgObj, text: msgObj.text ? vernamEncrypt(msgObj.text) : '' };
         history.push(encryptedRecord);
