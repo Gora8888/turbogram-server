@@ -76,13 +76,87 @@ function setMobileTab(tab) {
 }
 
 const pkr = $('emojiPicker');
-['😀','😂','🥰','😎','🤔','😭','👍','❤️','🔥','🎉','👏','🙏','💯','✨','⚡','✈️'].forEach(em => {
-  const s = document.createElement('span');
-  s.className = 'emoji-item'; s.textContent = em;
-  s.onclick = () => { $('msgInput').value += em; updateSendBtnState(); $('msgInput').focus(); };
-  if (pkr) pkr.appendChild(s);
-});
-function toggleEmojiPicker() { if (pkr) pkr.style.display = pkr.style.display === 'grid' ? 'none' : 'grid'; }
+const TG_EMOJI_CATS = {
+  '😀': ['😀','😃','😄','😁','😆','😅','😂','🤣','🥲','☺️','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃'],
+  '👋': ['👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁️','👅','👄','💋','🩸'],
+  '🐶': ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🐣','🐥','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪰','🪲','🪳','🦟','🦗','🕷️','🕸️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿️','🦔'],
+  '🍔': ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🫑','🌽','🥕','🫒','🧄','🧅','🥔','🍠','🥐','🥯','🍞','🥖','🥨','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🦴','🌭','🍔','🍟','🍕','🫓','🥪','🥙','🧆','🌮','🌯','🫔','🥗','🥘','🫕','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🦪','🍤','🍙','🍚','🍘','🍥','🥠','🥮','🍢','🍡','🍧','🍨','🍦','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🥛','🍼','🫖','☕','🍵','🧃','🥤','🧋','🍶','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧉','🍾','🧊'],
+  '⚽': ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🏑','🥍','🏏','🪃','🥅','⛳','🪁','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','🥌','🎿','⛷️','🏂','🪂','🏋️','🤼','🤸','⛹️','🤺','🤾','🏌️','🏇','🧘','🏄','🏊','🤽','🚣','🧗','🚵','🚴','🏆','🥇','🥈','🥉','🏅','🎖️','🏵️','🎗️','🎫','🎟️','🎪','🤹','🎭','🩰','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🪘','🎷','🎺','🪗','🎸','🪕','🎻','🎲','♟️','🎯','🎳','🎮','🎰','🧩'],
+  '❤️': ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','禁','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','❗','❕','❓','❔','‼️','⁉️','🔅','🔆','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯','💹','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🈳','🈂️','🛂','🛃','🛄','🛅','🚹','🚺','🚼','⚧️','🚻','🚮','🎦','📶','🈁','🔣','ℹ️','🔤','🔡','🔠','🆖','🆗','🆙','🆒','🆕','🆓','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','▶️','⏸️','⏯️','⏹️','⏺️','⏭️','⏮️','⏩','⏪','⏫','⏬','◀️','🔼','🔽','➡️','⬅️','⬆️','⬇️','↗️','↘️','↙️','↖️','↕️','↔️','↪️','↩️','⤴️','⤵️','🔀','🔁','🔂','🔄','🔃','🎵','🎶','➕','➖','➗','✖️','♾️','💲','💱','™️','©️','®️','〰️','➰','➿','🔚','🔙','🔛','🔝','🔜','✔️','☑️','🔘','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🔺','🔻','🔸','🔹','🔶','🔷','🔳','🔲','▪️','▫️','◾','◽','◼️','◻️','🟥','🟧','🟨','🟩','🟦','🟪','⬛','⬜','🟫','🔈','🔇','🔉','🔊','🔔','🔕','📣','📢','👁️‍🗨️','💬','💭','🗯️','♠️','♣️','♥️','♦️','🃏','🎴','🀄','🕐','🕑','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕙','🕚','🕛','🕜','🕝','🕞','🕟','🕠','🕡','🕢','🕣','🕤','🕥','🕦','🕧']
+};
+let customStickers = JSON.parse(localStorage.getItem('tg_custom_stickers') || '[]');
+let currentEpTab = '😀';
+
+function renderEmojiAndStickers() {
+  if (!pkr) return;
+  let tabsHtml = '<div class="ep-tabs">';
+  Object.keys(TG_EMOJI_CATS).forEach(cat => {
+    tabsHtml += `<button type="button" class="ep-tab ${currentEpTab === cat ? 'active' : ''}" onclick="event.stopPropagation();currentEpTab='${cat}';renderEmojiAndStickers()">${cat}</button>`;
+  });
+  tabsHtml += `<button type="button" class="ep-tab ${currentEpTab === 'stickers' ? 'active' : ''}" onclick="event.stopPropagation();currentEpTab='stickers';renderEmojiAndStickers()" style="font-size:13px;font-weight:700">Стикеры</button></div>`;
+
+  if (currentEpTab === 'stickers') {
+    let grid = '<div class="ep-sticker-grid">';
+    grid += `<div class="ep-sticker-item" onclick="event.stopPropagation();$('stickerMakerInput').click()" style="flex-direction:column;color:#4ea4f6;font-size:12px;font-weight:700"><span style="font-size:22px">+</span><span>Создать</span></div>`;
+    customStickers.forEach((st, i) => {
+      grid += `<div class="ep-sticker-item" onclick="event.stopPropagation();sendSticker('${st}')" oncontextmenu="event.preventDefault();deleteCustomSticker(${i})"><img src="${st}"></div>`;
+    });
+    grid += '</div>';
+    pkr.innerHTML = tabsHtml + grid;
+  } else {
+    let grid = '<div class="ep-grid">';
+    TG_EMOJI_CATS[currentEpTab].forEach(em => {
+      grid += `<span class="emoji-item" onclick="event.stopPropagation();$('msgInput').value+='${em}';updateSendBtnState()">${em}</span>`;
+    });
+    grid += '</div>';
+    pkr.innerHTML = tabsHtml + grid;
+  }
+}
+
+function toggleEmojiPicker() {
+  if (!pkr) return;
+  if (pkr.style.display === 'flex') pkr.style.display = 'none';
+  else { renderEmojiAndStickers(); pkr.style.display = 'flex'; }
+}
+
+function createCustomSticker(e) {
+  const f = e.target.files; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+      c.getContext('2d').drawImage(img, 0, 0, 256, 256);
+      const dataUrl = c.toDataURL('image/webp', 0.85);
+      customStickers.unshift(dataUrl);
+      localStorage.setItem('tg_custom_stickers', JSON.stringify(customStickers));
+      renderEmojiAndStickers();
+    };
+    img.src = ev.target.result;
+  };
+  r.readAsDataURL(f); e.target.value = '';
+}
+
+function deleteCustomSticker(idx) {
+  if (confirm('Удалить этот стикер?')) {
+    customStickers.splice(idx, 1);
+    localStorage.setItem('tg_custom_stickers', JSON.stringify(customStickers));
+    renderEmojiAndStickers();
+  }
+}
+
+function sendSticker(dataUrl) {
+  if (pkr) pkr.style.display = 'none';
+  const msgId = Date.now().toString(), time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const target = chat === 'saved' ? myId : chat;
+  const isRoom = chat.startsWith('gr_') || chat.startsWith('ch_');
+  ws.send(JSON.stringify({ type: 'message', msgId, to: target, text: '', sticker: dataUrl, reply: replyTo }));
+  if (!isRoom && chat !== 'saved') {
+    (hist[chat] = hist[chat] || []).push({ msgId, fromId: myId, fromName: myName, text: '', sticker: dataUrl, time, reply: replyTo, reactions: {} });
+    renderMessages(); renderChatList();
+  }
+  cancelReply();
+}
 
 function applyTheme(t) { document.body.classList.toggle('theme-oled', t === 'oled'); document.body.classList.toggle('theme-blue', t === 'blue'); }
 function applyFontSize(sz) { document.documentElement.style.setProperty('--msg-size', sz); }
@@ -718,13 +792,14 @@ function renderMessages() {
   const isRoom = chat.startsWith('gr_') || chat.startsWith('ch_');
   (hist[chat] || []).forEach(m => {
     const me = m.fromId === myId, el = document.createElement('div');
-    el.className = 'msg ' + (me ? 'outgoing' : 'incoming');
+    el.className = 'msg ' + (me ? 'outgoing' : 'incoming') + (m.videoCircle ? ' is-circle' : '') + (m.sticker ? ' is-sticker' : '');
     el.onclick = e => openMsgContextMenu(e, m, me);
     let body = (!me && isRoom) ? `<div class="msg-author">${m.fromName}</div>` : '';
     if (m.reply) body += `<div class="reply-quote"><b>${m.reply.name}:</b> ${m.reply.text}</div>`;
     if (m.text) body += `<span>${formatSpoilers(m.text)}</span>`;
     if (m.voice) body += `<audio controls src="${m.voice}" style="height:34px;max-width:220px;margin-top:4px;display:block" onclick="event.stopPropagation()"></audio>`;
-    if (m.videoCircle) body += `<video src="${m.videoCircle}" class="msg-circle-video" playsinline loop onclick="event.stopPropagation();this.paused?this.play():this.pause()"></video>`;
+    if (m.videoCircle) body += `<div class="circle-msg-wrap" onclick="event.stopPropagation();const v=this.querySelector('video');const ic=this.querySelector('.circle-mute-btn');v.muted=!v.muted;v.play();ic.textContent=v.muted?'🔇':'🔊'"><video src="${m.videoCircle}#t=0.01" class="msg-circle-video" autoplay muted playsinline loop preload="auto"></video><span class="circle-dur-pill">0:05</span><span class="circle-mute-btn">🔇</span></div>`;
+    if (m.sticker) body += `<img src="${m.sticker}" class="msg-sticker-img">`;
     if (m.file) body += m.file.isImage ? `<img src="${m.file.data}" class="msg-img">` : `<a href="${m.file.data}" download="${m.file.name}" class="msg-file-box" onclick="event.stopPropagation()">📄 ${m.file.name}</a>`;
     const ticksHtml = me ? ((m.read || chat === 'saved') ? SVG_TICK_READ : SVG_TICK_SENT) : '';
     const meta = `<span class="msg-meta">${m.edited ? 'ред. ' : ''}${m.time}${ticksHtml}</span>`;
