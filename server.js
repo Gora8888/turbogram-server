@@ -375,6 +375,7 @@ wss.on('connection', ws => {
     if (data.type === 'message') {
       const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const msgObj = {
+        forwardedFrom: data.forwardedFrom || null,
         type: 'message',
         msgId: data.msgId || Date.now().toString(),
         fromId: myId,
